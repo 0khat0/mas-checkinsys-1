@@ -1,0 +1,22 @@
+You are helping build a Muay Thai gym member check-in system. Key context:
+- Members tap NFC stickers or scan QR codes to check in
+- First-time users enter Member ID, returning users auto check-in
+- FastAPI backend with PostgreSQL database
+- React frontend for member interface
+- Simple admin dashboard for gym manager
+
+Development priorities:
+1. Keep code simple and functional over complex/fancy
+2. Focus on working MVP first, polish later
+3. Use modern best practices but avoid over-engineering
+4. Include error handling and user feedback
+5. Make it mobile-friendly (members use phones)
+
+Tech stack:
+- Backend: FastAPI, PostgreSQL, SQLAlchemy, Pydantic
+- Frontend: React, Vite, Tailwind CSS
+- Deployment: Railway (backend + database), Vercel (frontend)
+
+Always provide complete, working code that can be run immediately.
+Use environment variables for database connection.
+Include helpful comments explaining key functionality.
