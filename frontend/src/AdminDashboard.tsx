@@ -27,6 +27,10 @@ interface Member {
 }
 
 function AdminDashboard() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [token, setToken] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<'week' | 'month' | 'year' | 'custom'>('week');
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
@@ -37,6 +41,14 @@ function AdminDashboard() {
   const [showMembersModal, setShowMembersModal] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+
+  useEffect(() => {
+    const storedToken = localStorage.getItem('admin_token');
+    if (storedToken) {
+      setToken(storedToken);
+      setIsAuthenticated(true);
+    }
+  }, []);
 
   useEffect(() => {
     // Set initial date range
@@ -135,6 +147,71 @@ function AdminDashboard() {
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), 'MMM d, yyyy');
   };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    try {
+      const res = await fetch('http://127.0.0.1:8000/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem('admin_token', data.token);
+        setToken(data.token);
+        setIsAuthenticated(true);
+        setLoginError('');
+      } else {
+        setLoginError('Incorrect password.');
+      }
+    } catch (err) {
+      setLoginError('Network error.');
+    }
+  };
+
+  // Helper to add Authorization header to all admin fetches
+  const authFetch = (url: string, options: any = {}) => {
+    return fetch(url, {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        Authorization: token ? `Bearer ${token}` : '',
+      },
+    });
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-900">
+        <motion.form
+          className="bg-gray-800 rounded-xl p-8 shadow-2xl w-full max-w-sm flex flex-col items-center"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          onSubmit={handleLogin}
+        >
+          <h2 className="text-2xl font-bold text-white mb-6">Admin Login</h2>
+          <input
+            type="password"
+            placeholder="Enter admin password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            className="w-full px-4 py-3 rounded-lg bg-gray-900 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500 mb-4"
+            autoFocus
+          />
+          {loginError && <p className="text-red-500 mb-4">{loginError}</p>}
+          <button
+            type="submit"
+            className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200"
+          >
+            Login
+          </button>
+        </motion.form>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 p-4 pb-24">
