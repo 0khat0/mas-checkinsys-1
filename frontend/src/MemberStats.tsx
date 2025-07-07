@@ -1,0 +1,160 @@
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+
+interface MemberStats {
+  monthly_check_ins: number;
+  current_streak: number;
+  highest_streak: number;
+  member_since: string;
+  check_in_dates?: string[];
+}
+
+interface Props {
+  memberId: string;
+}
+
+const DEFAULT_GOAL = 5;
+
+function getMondayOfCurrentWeek(date: Date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is Sunday
+  return new Date(d.setDate(diff));
+}
+
+function MemberStats({ memberId }: Props) {
+  const [stats, setStats] = useState<MemberStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [goal, setGoal] = useState<number>(() => {
+    const saved = localStorage.getItem('checkin_goal');
+    return saved ? parseInt(saved, 10) : DEFAULT_GOAL;
+  });
+  const [weeklyCheckins, setWeeklyCheckins] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/member/${memberId}/stats`);
+        const data = await response.json();
+        setStats(data);
+        if (data && data.check_in_dates && Array.isArray(data.check_in_dates)) {
+          const now = new Date();
+          const monday = getMondayOfCurrentWeek(now);
+          const weekCheckins = data.check_in_dates.filter((d: string) => {
+            const date = new Date(d);
+            return date >= monday && date <= now;
+          }).length;
+          setWeeklyCheckins(weekCheckins);
+        } else {
+          setWeeklyCheckins(0);
+        }
+      } catch (error) {
+        console.error('Error fetching member stats:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchStats();
+  }, [memberId]);
+
+  useEffect(() => {
+    localStorage.setItem('checkin_goal', goal.toString());
+  }, [goal]);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-48">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500"></div>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return null;
+  }
+
+  const percent = Math.round((weeklyCheckins / goal) * 100);
+
+  return (
+    <div className="bg-gray-900 rounded-xl p-6 space-y-6">
+      <h2 className="text-2xl font-bold text-white mb-4">Your Stats</h2>
+      <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
+        <label className="text-white/70 text-sm flex items-center gap-2">
+          Weekly Goal:
+          <input
+            type="number"
+            min={1}
+            max={100}
+            value={goal}
+            onChange={e => setGoal(Number(e.target.value))}
+            className="w-16 px-2 py-1 rounded bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+          />
+        </label>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Weekly Check-ins Card */}
+        <motion.div 
+          className="bg-gray-800/50 rounded-lg p-4 backdrop-blur-sm border border-white/10"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-white/70 text-sm">This Week</p>
+              <h3 className="text-3xl font-bold text-white mt-1">
+                {weeklyCheckins}
+              </h3>
+              <p className="text-white/50 text-sm mt-1">Check-ins</p>
+            </div>
+            <div className="text-3xl">🏋️‍♂️</div>
+          </div>
+          {/* Progress Bar */}
+          <div className="mt-4">
+            <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-red-500 rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min((weeklyCheckins / goal) * 100, 100)}%` }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+              />
+            </div>
+            <p className="text-white/50 text-xs mt-2">
+              {percent}% of weekly goal
+            </p>
+          </div>
+        </motion.div>
+        {/* Streak Card */}
+        <motion.div 
+          className="bg-gray-800/50 rounded-lg p-4 backdrop-blur-sm border border-white/10"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-white/70 text-sm">Current Streak</p>
+              <div className="flex items-baseline mt-1">
+                <h3 className="text-3xl font-bold text-white">
+                  {stats.current_streak}
+                </h3>
+                <span className="text-white/50 ml-2">days</span>
+              </div>
+            </div>
+            <div className="text-3xl">🔥</div>
+          </div>
+          <div className="mt-2">
+            <div className="flex justify-between items-center">
+              <p className="text-white/70 text-sm">Highest Streak</p>
+              <p className="text-white font-semibold">
+                {stats.highest_streak} days
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+export default MemberStats; 
