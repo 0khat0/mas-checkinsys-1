@@ -18,6 +18,7 @@ import os
 import models
 from database import engine, SessionLocal
 from typing import List, Dict, Optional
+import jwt
 
 # Configure structured logging
 structlog.configure(
@@ -492,4 +493,38 @@ async def get_member_stats(request: Request, member_id: str, db: Session = Depen
         "check_in_dates": [dt.isoformat() for dt in check_in_dates],
     }
     
-    return stats 
+    return stats
+
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "changeme")
+JWT_SECRET = os.getenv("JWT_SECRET", "supersecretkey")
+JWT_ALGORITHM = "HS256"
+
+security = HTTPBearer()
+
+def create_jwt_token():
+    payload = {"role": "admin"}
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+def verify_jwt_token(token: str):
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return payload.get("role") == "admin"
+    except Exception:
+        return False
+
+@app.post("/admin/login")
+def admin_login(data: dict = Body(...)):
+    password = data.get("password")
+    if password == ADMIN_PASSWORD:
+        token = create_jwt_token()
+        return {"token": token}
+    else:
+        raise HTTPException(status_code=401, detail="Invalid password")
+
+# Example protected admin endpoint
+@app.get("/admin/protected")
+def admin_protected(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    if not verify_jwt_token(token):
+        raise HTTPException(status_code=401, detail="Invalid or missing token")
+    return {"message": "You are an authenticated admin!"} 
