@@ -34,7 +34,8 @@ function MemberStats({ memberId }: Props) {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch(`http://127.0.0.1:8000/member/${memberId}/stats`);
+        const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+        const response = await fetch(`${API_URL}/member/${memberId}/stats`);
         const data = await response.json();
         setStats(data);
         if (data && data.check_in_dates && Array.isArray(data.check_in_dates)) {

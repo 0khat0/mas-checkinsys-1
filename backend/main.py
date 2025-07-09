@@ -120,7 +120,7 @@ async def log_requests(request: Request, call_next):
 #     models.Base.metadata.drop_all(bind=engine)
 #     models.Base.metadata.create_all(bind=engine)
 # else:
-models.Base.metadata.create_all(bind=engine)
+    models.Base.metadata.create_all(bind=engine)
 
 # Dependency to get DB session
 def get_db():
@@ -237,7 +237,7 @@ async def check_in(request: Request, member_data: dict, db: Session = Depends(ge
 
     # Update metrics
     CHECKIN_COUNT.inc()
-    
+
     logger.info("Check-in successful", member_id=str(member.id), email=email)
 
     return {
@@ -493,7 +493,7 @@ async def get_member_stats(request: Request, member_id: str, db: Session = Depen
         "check_in_dates": [dt.isoformat() for dt in check_in_dates],
     }
     
-    return stats
+    return stats 
 
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "changeme")
 JWT_SECRET = os.getenv("JWT_SECRET", "supersecretkey")

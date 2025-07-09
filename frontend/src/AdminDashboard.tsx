@@ -70,7 +70,8 @@ function AdminDashboard() {
 
   const fetchTodayCheckins = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/admin/checkins/today');
+      const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+      const response = await fetch(`${API_URL}/admin/checkins/today`);
       const data = await response.json();
       setTodayCheckins(data);
     } catch (error) {
@@ -111,8 +112,9 @@ function AdminDashboard() {
 
   const fetchCheckinData = async () => {
     try {
+      const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
       const response = await fetch(
-        `http://127.0.0.1:8000/admin/checkins/range?start_date=${format(startDate, 'yyyy-MM-dd')}&end_date=${format(endDate, 'yyyy-MM-dd')}&group_by=${groupBy}`
+        `${API_URL}/admin/checkins/range?start_date=${format(startDate, 'yyyy-MM-dd')}&end_date=${format(endDate, 'yyyy-MM-dd')}&group_by=${groupBy}`
       );
       const data = await response.json();
       setCheckinData(data);
@@ -123,7 +125,8 @@ function AdminDashboard() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/admin/checkins/stats');
+      const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+      const response = await fetch(`${API_URL}/admin/checkins/stats`);
       const data = await response.json();
       setStats(data);
     } catch (error) {
@@ -134,7 +137,8 @@ function AdminDashboard() {
   const fetchMembers = async () => {
     setIsLoadingMembers(true);
     try {
-      const response = await fetch('http://127.0.0.1:8000/members');
+      const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+      const response = await fetch(`${API_URL}/members`);
       const data = await response.json();
       setMembers(data);
     } catch (error) {
@@ -152,7 +156,8 @@ function AdminDashboard() {
     e.preventDefault();
     setLoginError('');
     try {
-      const res = await fetch('http://127.0.0.1:8000/admin/login', {
+      const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+      const res = await fetch(`${API_URL}/admin/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),

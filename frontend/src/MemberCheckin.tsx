@@ -51,7 +51,8 @@ function MemberCheckin() {
 
   useEffect(() => {
     if (status === "checking-in" && memberEmail) {
-      fetch("http://127.0.0.1:8000/checkin", {
+      const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+      fetch(`${API_URL}/checkin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: memberEmail }),
@@ -202,7 +203,8 @@ function MemberCheckin() {
                   setStatus("loading");
                   setMessage("");
                   try {
-                    const res = await fetch("http://127.0.0.1:8000/member", {
+                    const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+                    const res = await fetch(`${API_URL}/member`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ email: formEmail, name: formName }),
@@ -212,7 +214,7 @@ function MemberCheckin() {
                       localStorage.setItem("member_email", formEmail);
                       setMemberEmail(formEmail);
                       setMemberId(data.id);
-                      const checkinRes = await fetch("http://127.0.0.1:8000/checkin", {
+                      const checkinRes = await fetch(`${API_URL}/checkin`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ email: formEmail }),
