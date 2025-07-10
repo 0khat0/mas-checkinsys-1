@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { isValidUUID, getApiUrl, clearMemberData } from './utils';
-import logo from "./assets/mas-logo.png";
 
 interface MemberStats {
   monthly_check_ins: number;
