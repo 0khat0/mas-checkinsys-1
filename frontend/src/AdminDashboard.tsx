@@ -40,6 +40,7 @@ function AdminDashboard() {
   const [showMembersModal, setShowMembersModal] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+  const [memberSearch, setMemberSearch] = useState("");
 
   useEffect(() => {
     const storedToken = localStorage.getItem('admin_token');
@@ -272,6 +273,16 @@ function AdminDashboard() {
                     </svg>
                   </button>
                 </div>
+                <div className="px-6 pt-4 pb-2">
+                  <input
+                    type="text"
+                    placeholder="Search members by name or email..."
+                    value={memberSearch}
+                    onChange={e => setMemberSearch(e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500 mb-4"
+                    autoFocus
+                  />
+                </div>
                 <div className="p-6 overflow-auto max-h-[calc(80vh-80px)]">
                   {isLoadingMembers ? (
                     <div className="flex justify-center items-center py-12">
@@ -287,7 +298,10 @@ function AdminDashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {members.map((member) => (
+                        {members.filter(m =>
+                          m.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
+                          m.email.toLowerCase().includes(memberSearch.toLowerCase())
+                        ).map((member) => (
                           <tr 
                             key={member.id}
                             className="border-b border-white/5 hover:bg-white/5 transition-colors"
