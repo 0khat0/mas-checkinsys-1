@@ -32,7 +32,6 @@ function getDailyMuayThaiMessage() {
 
 function MemberCheckin() {
   const [memberEmail, setMemberEmail] = useState<string | null>(null);
-  const [memberId, setMemberId] = useState<string | null>(null);
   const [status, setStatus] = useState<"loading" | "register" | "checking-in" | "success" | "error">("loading");
   const [message, setMessage] = useState<string>("");
   const [formEmail, setFormEmail] = useState("");
@@ -68,7 +67,7 @@ function MemberCheckin() {
             const data = await res.json();
             // Only store member_id if it's a valid UUID
             if (data.member_id && isValidUUID(data.member_id)) {
-              setMemberId(data.member_id);
+              // setMemberId(data.member_id); // This line is removed
             }
             setStatus("success");
             setMessage("Check-in successful! Welcome back.");
@@ -223,7 +222,7 @@ function MemberCheckin() {
                       
                       // Store member_id if it's a valid UUID
                       if (data.id && isValidUUID(data.id)) {
-                        setMemberId(data.id);
+                        // setMemberId(data.id); // This line is removed
                       }
                       
                       const checkinRes = await fetch(`${API_URL}/checkin`, {
@@ -235,7 +234,7 @@ function MemberCheckin() {
                         const checkinData = await checkinRes.json();
                         // Update member_id from check-in response if available
                         if (checkinData.member_id && isValidUUID(checkinData.member_id)) {
-                          setMemberId(checkinData.member_id);
+                          // setMemberId(checkinData.member_id); // This line is removed
                         }
                         setStatus("success");
                         setMessage("Check-in successful! Welcome!");
