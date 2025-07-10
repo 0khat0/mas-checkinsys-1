@@ -35,7 +35,6 @@ function AppContent() {
   const isAdminRoute = location.pathname.startsWith("/admin");
 
   // Get memberId from localStorage for profile
-  const memberEmail = typeof window !== 'undefined' ? localStorage.getItem("member_email") : null;
   const memberId = typeof window !== 'undefined' ? localStorage.getItem("member_id") : null;
 
   return (

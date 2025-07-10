@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import logo from "./assets/mas-logo.png";
-import MemberStats from './MemberStats';
 
 function getDailyMuayThaiMessage() {
   const messages = [
@@ -37,7 +36,6 @@ function MemberCheckin() {
   const [message, setMessage] = useState<string>("");
   const [formEmail, setFormEmail] = useState("");
   const [formName, setFormName] = useState("");
-  const [showStats, setShowStats] = useState(false);
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("member_email");
@@ -62,7 +60,6 @@ function MemberCheckin() {
             const data = await res.json();
             setMemberId(data.member_id); // Assuming the backend returns member_id
             setStatus("success");
-            setShowStats(true);
             setMessage("Check-in successful! Welcome back.");
           } else {
             const data = await res.json();
@@ -221,7 +218,6 @@ function MemberCheckin() {
                       });
                       if (checkinRes.ok) {
                         setStatus("success");
-                        setShowStats(true);
                         setMessage("Check-in successful! Welcome!");
                       } else {
                         const data = await checkinRes.json();
