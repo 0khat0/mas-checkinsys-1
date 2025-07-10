@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import logo from "./assets/mas-logo.png";
+import { isValidUUID, getApiUrl, setMemberId, clearMemberData } from "./utils";
 
 function getDailyMuayThaiMessage() {
   const messages = [
@@ -39,6 +40,13 @@ function MemberCheckin() {
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("member_email");
+    const savedMemberId = localStorage.getItem("member_id");
+    
+    // Validate saved member_id if it exists
+    if (savedMemberId && !isValidUUID(savedMemberId)) {
+      localStorage.removeItem("member_id");
+    }
+    
     if (savedEmail) {
       setMemberEmail(savedEmail);
       setStatus("checking-in");
@@ -49,7 +57,7 @@ function MemberCheckin() {
 
   useEffect(() => {
     if (status === "checking-in" && memberEmail) {
-      const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+      const API_URL = getApiUrl();
       fetch(`${API_URL}/checkin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -58,13 +66,16 @@ function MemberCheckin() {
         .then(async (res) => {
           if (res.ok) {
             const data = await res.json();
-            setMemberId(data.member_id); // Assuming the backend returns member_id
+            // Only store member_id if it's a valid UUID
+            if (data.member_id && isValidUUID(data.member_id)) {
+              setMemberId(data.member_id);
+            }
             setStatus("success");
             setMessage("Check-in successful! Welcome back.");
           } else {
             const data = await res.json();
             if (data.detail === "Member not found") {
-              localStorage.removeItem("member_email");
+              clearMemberData();
               setStatus("register");
               setMessage("");
             } else {
@@ -82,7 +93,7 @@ function MemberCheckin() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-red-950 font-poppins overflow-hidden">
-      <div className="w-full max-w-lg p-4 flex flex-col items-center justify-center min-h-[100vh] relative">
+      <div className="w-full p-4 px-2 sm:px-4 flex flex-col items-center justify-center min-h-[100vh] relative">
         {/* Animated background blobs */}
         <motion.div 
           className="floating-background bg-blob-1"
@@ -116,30 +127,29 @@ function MemberCheckin() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          {/* Clean, Modern Banner with Stronger Shadow */}
-          <motion.div 
-            className="w-full flex justify-center items-center mb-3"
-            initial={{ opacity: 0, y: 40 }}
+          <motion.div
+            className="flex flex-row items-center justify-center w-full mb-4 gap-6"
+            initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
+            transition={{ duration: 0.5 }}
           >
-            <img 
-              src={logo} 
-              alt="MAS Academy of Martial Arts Banner" 
-              className="w-full max-w-3xl h-32 md:h-44 object-cover object-center rounded-2xl shadow-2xl shadow-red-900/60 bg-white"
-              style={{ border: 'none' }}
-            />
+            <div className="bg-white rounded-2xl shadow-lg p-2 flex items-center justify-center"
+                 style={{ width: 120, height: 120 }}>
+              <img
+                src={logo}
+                alt="MAS Academy Logo"
+                className="object-contain h-full w-full"
+                style={{ maxHeight: 110, maxWidth: 110 }}
+              />
+            </div>
+            <div className="flex flex-col items-start justify-center w-full max-w-xs">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight drop-shadow-lg"
+                  style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7)' }}>
+                MAS Academy of Martial Arts
+              </h1>
+              <div className="h-2 rounded-full bg-gradient-to-r from-red-500 to-red-700 shadow-md mt-2 w-full" />
+            </div>
           </motion.div>
-          
-          {/* Title */}
-          <motion.h1 
-            className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-red-700 tracking-tight text-center relative z-10 text-shadow"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            MAS Academy of Martial Arts
-          </motion.h1>
           
           {/* Status Messages */}
           <AnimatePresence mode="wait">
@@ -200,7 +210,7 @@ function MemberCheckin() {
                   setStatus("loading");
                   setMessage("");
                   try {
-                    const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+                    const API_URL = getApiUrl();
                     const res = await fetch(`${API_URL}/member`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
@@ -210,19 +220,29 @@ function MemberCheckin() {
                       const data = await res.json();
                       localStorage.setItem("member_email", formEmail);
                       setMemberEmail(formEmail);
-                      setMemberId(data.id);
+                      
+                      // Store member_id if it's a valid UUID
+                      if (data.id && isValidUUID(data.id)) {
+                        setMemberId(data.id);
+                      }
+                      
                       const checkinRes = await fetch(`${API_URL}/checkin`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ email: formEmail }),
                       });
                       if (checkinRes.ok) {
+                        const checkinData = await checkinRes.json();
+                        // Update member_id from check-in response if available
+                        if (checkinData.member_id && isValidUUID(checkinData.member_id)) {
+                          setMemberId(checkinData.member_id);
+                        }
                         setStatus("success");
                         setMessage("Check-in successful! Welcome!");
                       } else {
-                        const data = await checkinRes.json();
+                        const checkinErrorData = await checkinRes.json();
                         setStatus("error");
-                        setMessage(data.detail || "Check-in failed after registration.");
+                        setMessage(checkinErrorData.detail || "Check-in failed after registration.");
                       }
                     } else {
                       const data = await res.json();
@@ -242,13 +262,13 @@ function MemberCheckin() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.1 }}
                   >
-                    <label className="block text-lg font-medium text-white/90">Email Address</label>
+                    <label className="block text-lg font-medium text-white/90">Full Name</label>
                     <input
                       className="input-field"
-                      placeholder="Enter your email"
-                      type="email"
-                      value={formEmail}
-                      onChange={(e) => setFormEmail(e.target.value)}
+                      placeholder="Enter your name"
+                      type="text"
+                      value={formName}
+                      onChange={(e) => setFormName(e.target.value)}
                       required
                     />
                   </motion.div>
@@ -259,13 +279,13 @@ function MemberCheckin() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.2 }}
                   >
-                    <label className="block text-lg font-medium text-white/90">Full Name</label>
+                    <label className="block text-lg font-medium text-white/90">Email Address</label>
                     <input
                       className="input-field"
-                      placeholder="Enter your name"
-                      type="text"
-                      value={formName}
-                      onChange={(e) => setFormName(e.target.value)}
+                      placeholder="Enter your email"
+                      type="email"
+                      value={formEmail}
+                      onChange={(e) => setFormEmail(e.target.value)}
                       required
                     />
                   </motion.div>

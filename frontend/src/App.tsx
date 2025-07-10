@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ErrorBoundary from "./ErrorBoundary";
 import './App.css'
 import MemberStats from "./MemberStats";
+import { getMemberId } from "./utils";
 
 // Lazy load components for better performance
 const MemberCheckin = lazy(() => import("./MemberCheckin"));
@@ -34,8 +35,8 @@ function AppContent() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith("/admin");
 
-  // Get memberId from localStorage for profile
-  const memberId = typeof window !== 'undefined' ? localStorage.getItem("member_id") : null;
+  // Get validated memberId from localStorage for profile
+  const memberId = getMemberId();
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">

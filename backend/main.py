@@ -21,6 +21,14 @@ from typing import List, Dict, Optional
 import jwt
 from pydantic import BaseModel
 
+# UUID validation function
+def is_valid_uuid(uuid_string: str) -> bool:
+    try:
+        uuid.UUID(uuid_string)
+        return True
+    except ValueError:
+        return False
+
 # Configure structured logging
 structlog.configure(
     processors=[
@@ -458,6 +466,10 @@ def calculate_streak(check_ins: List[datetime]) -> Dict:
 async def get_member_stats(request: Request, member_id: str, db: Session = Depends(get_db)):
     """Get member statistics including monthly check-ins and streaks"""
     
+    # Validate UUID format
+    if not is_valid_uuid(member_id):
+        raise HTTPException(status_code=400, detail="Invalid member ID format")
+    
     # Get member
     member = db.query(models.Member).filter(models.Member.id == member_id).first()
     if not member:
@@ -496,6 +508,8 @@ async def get_member_stats(request: Request, member_id: str, db: Session = Depen
         "highest_streak": streak_info["highest_streak"],
         "member_since": member.created_at.strftime("%B %Y"),
         "check_in_dates": [dt.isoformat() for dt in check_in_dates],
+        "name": member.name,  # Always include name
+        "email": member.email # Always include email
     }
     
     return stats 
@@ -503,6 +517,10 @@ async def get_member_stats(request: Request, member_id: str, db: Session = Depen
 @app.put("/member/{member_id}")
 @limiter.limit("5/minute")
 async def update_member(request: Request, member_id: str, update: MemberUpdate, db: Session = Depends(get_db)):
+    # Validate UUID format
+    if not is_valid_uuid(member_id):
+        raise HTTPException(status_code=400, detail="Invalid member ID format")
+    
     member = db.query(models.Member).filter(models.Member.id == member_id).first()
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
