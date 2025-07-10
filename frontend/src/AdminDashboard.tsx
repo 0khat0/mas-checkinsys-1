@@ -10,7 +10,7 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
-import { format, subDays, subMonths, subYears, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 
 interface DailyCheckin {
   checkin_id: string;
@@ -174,17 +174,6 @@ function AdminDashboard() {
     } catch (err) {
       setLoginError('Network error.');
     }
-  };
-
-  // Helper to add Authorization header to all admin fetches
-  const authFetch = (url: string, options: any = {}) => {
-    return fetch(url, {
-      ...options,
-      headers: {
-        ...(options.headers || {}),
-        Authorization: token ? `Bearer ${token}` : '',
-      },
-    });
   };
 
   if (!isAuthenticated) {
