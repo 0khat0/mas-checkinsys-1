@@ -30,7 +30,6 @@ function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [token, setToken] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<'week' | 'month' | 'year' | 'custom'>('week');
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
@@ -45,7 +44,6 @@ function AdminDashboard() {
   useEffect(() => {
     const storedToken = localStorage.getItem('admin_token');
     if (storedToken) {
-      setToken(storedToken);
       setIsAuthenticated(true);
     }
   }, []);
@@ -165,7 +163,6 @@ function AdminDashboard() {
       if (res.ok) {
         const data = await res.json();
         localStorage.setItem('admin_token', data.token);
-        setToken(data.token);
         setIsAuthenticated(true);
         setLoginError('');
       } else {
