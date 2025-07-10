@@ -19,6 +19,7 @@ import models
 from database import engine, SessionLocal
 from typing import List, Dict, Optional
 import jwt
+from pydantic import BaseModel
 
 # Configure structured logging
 structlog.configure(
@@ -412,6 +413,10 @@ async def get_members(request: Request, db: Session = Depends(get_db)):
     
     return members_data
 
+class MemberUpdate(BaseModel):
+    name: str
+    email: str
+
 def calculate_streak(check_ins: List[datetime]) -> Dict:
     if not check_ins:
         return {"current_streak": 0, "highest_streak": 0}
@@ -494,6 +499,29 @@ async def get_member_stats(request: Request, member_id: str, db: Session = Depen
     }
     
     return stats 
+
+@app.put("/member/{member_id}")
+@limiter.limit("5/minute")
+async def update_member(request: Request, member_id: str, update: MemberUpdate, db: Session = Depends(get_db)):
+    member = db.query(models.Member).filter(models.Member.id == member_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    # Check if email is changing and if new email is already taken
+    if update.email != member.email:
+        existing = db.query(models.Member).filter(models.Member.email == update.email).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Email already registered")
+    # Use setattr to avoid linter errors with SQLAlchemy columns
+    setattr(member, 'name', update.name)
+    setattr(member, 'email', update.email)
+    db.commit()
+    db.refresh(member)
+    return {
+        "id": str(member.id),
+        "name": member.name,
+        "email": member.email,
+        "created_at": member.created_at.isoformat()
+    }
 
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "changeme")
 JWT_SECRET = os.getenv("JWT_SECRET", "supersecretkey")

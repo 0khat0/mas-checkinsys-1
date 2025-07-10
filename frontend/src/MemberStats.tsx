@@ -7,6 +7,8 @@ interface MemberStats {
   highest_streak: number;
   member_since: string;
   check_in_dates?: string[];
+  name?: string;
+  email?: string;
 }
 
 interface Props {
@@ -30,6 +32,11 @@ function MemberStats({ memberId }: Props) {
     return saved ? parseInt(saved, 10) : DEFAULT_GOAL;
   });
   const [weeklyCheckins, setWeeklyCheckins] = useState<number>(0);
+  const [editMode, setEditMode] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editError, setEditError] = useState('');
+  const [editSuccess, setEditSuccess] = useState('');
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -38,6 +45,8 @@ function MemberStats({ memberId }: Props) {
         const response = await fetch(`${API_URL}/member/${memberId}/stats`);
         const data = await response.json();
         setStats(data);
+        setEditName(data.name || '');
+        setEditEmail(data.email || '');
         if (data && data.check_in_dates && Array.isArray(data.check_in_dates)) {
           const now = new Date();
           const monday = getMondayOfCurrentWeek(now);
@@ -78,6 +87,83 @@ function MemberStats({ memberId }: Props) {
 
   return (
     <div className="bg-gray-900 rounded-xl p-6 space-y-6">
+      {/* Editable Profile Info */}
+      <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
+        {editMode ? (
+          <form
+            className="flex flex-col md:flex-row gap-2 w-full"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setEditError('');
+              setEditSuccess('');
+              try {
+                const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+                const res = await fetch(`${API_URL}/member/${memberId}`, {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ name: editName, email: editEmail }),
+                });
+                if (res.ok) {
+                  setEditSuccess('Profile updated!');
+                  setEditMode(false);
+                  setStats((prev) => prev ? { ...prev, name: editName, email: editEmail } : prev);
+                  localStorage.setItem("member_email", editEmail);
+                } else {
+                  const data = await res.json();
+                  setEditError(data.detail || 'Failed to update profile.');
+                }
+              } catch (err) {
+                setEditError('Network error.');
+              }
+            }}
+          >
+            <input
+              type="text"
+              value={editName}
+              onChange={e => setEditName(e.target.value)}
+              className="px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+              placeholder="Full Name"
+              required
+            />
+            <input
+              type="email"
+              value={editEmail}
+              onChange={e => setEditEmail(e.target.value)}
+              className="px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+              placeholder="Email"
+              required
+            />
+            <button
+              type="submit"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded transition-colors duration-200"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              className="bg-gray-700 hover:bg-gray-800 text-white font-semibold px-4 py-2 rounded transition-colors duration-200"
+              onClick={() => { setEditMode(false); setEditError(''); setEditSuccess(''); }}
+            >
+              Cancel
+            </button>
+          </form>
+        ) : (
+          <div className="flex flex-col md:flex-row md:items-center gap-2 w-full">
+            <div className="flex-1">
+              <div className="text-white text-lg font-semibold">{stats.name}</div>
+              <div className="text-white/70 text-sm">{stats.email}</div>
+            </div>
+            <button
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded transition-colors duration-200"
+              onClick={() => setEditMode(true)}
+            >
+              Edit
+            </button>
+          </div>
+        )}
+      </div>
+      {editError && <div className="text-red-500 text-sm mb-2">{editError}</div>}
+      {editSuccess && <div className="text-green-500 text-sm mb-2">{editSuccess}</div>}
       <h2 className="text-2xl font-bold text-white mb-4">Your Stats</h2>
       <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
         <label className="text-white/70 text-sm flex items-center gap-2">
