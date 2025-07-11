@@ -222,7 +222,11 @@ function MemberCheckin() {
                       
                       // Store member_id if it's a valid UUID
                       if (data.id && isValidUUID(data.id)) {
+                        console.log('Registration response:', data);
                         setMemberId(data.id);
+                        console.log('Set member_id after registration:', data.id);
+                      } else {
+                        console.log('Registration response missing valid id:', data);
                       }
                       
                       const checkinRes = await fetch(`${API_URL}/checkin`, {
@@ -234,7 +238,11 @@ function MemberCheckin() {
                         const checkinData = await checkinRes.json();
                         // Update member_id from check-in response if available
                         if (checkinData.member_id && isValidUUID(checkinData.member_id)) {
+                          console.log('Check-in response:', checkinData);
                           setMemberId(checkinData.member_id);
+                          console.log('Set member_id after check-in:', checkinData.member_id);
+                        } else {
+                          console.log('Check-in response missing valid member_id:', checkinData);
                         }
                         setStatus("success");
                         setMessage("Check-in successful! Welcome!");
