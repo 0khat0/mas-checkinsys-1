@@ -291,7 +291,7 @@ function AdminDashboard() {
                     autoFocus
                   />
                 </div>
-                <div className="p-6 overflow-auto max-h-[calc(80vh-80px)]">
+                <div className="p-6">
                   {isLoadingMembers ? (
                     <div className="flex justify-center items-center py-12">
                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500"></div>
