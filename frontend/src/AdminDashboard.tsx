@@ -213,15 +213,19 @@ function AdminDashboard() {
     );
   }
 
-  const today = new Date();
-  today.setHours(0,0,0,0);
-  const dates = checkinData.map(d => new Date(d.date).setHours(0,0,0,0));
-  const hasToday = dates.includes(today.getTime());
-  let processedCheckinData = [...checkinData].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  if (!hasToday) {
-    processedCheckinData.push({ date: today.toISOString(), count: 0 });
-    processedCheckinData = processedCheckinData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  // Group checkinData by date (YYYY-MM-DD) and sum counts
+  const dateMap = new Map<string, number>();
+  checkinData.forEach(d => {
+    const dateStr = new Date(d.date).toISOString().slice(0, 10); // YYYY-MM-DD
+    dateMap.set(dateStr, (dateMap.get(dateStr) || 0) + (d.count || 0));
+  });
+  const todayStr = new Date().toISOString().slice(0, 10);
+  if (!dateMap.has(todayStr)) {
+    dateMap.set(todayStr, 0);
   }
+  const processedCheckinData = Array.from(dateMap.entries())
+    .map(([date, count]) => ({ date: date + 'T00:00:00.000Z', count }))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 p-4 pb-24">
