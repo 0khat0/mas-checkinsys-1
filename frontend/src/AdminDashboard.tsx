@@ -213,6 +213,16 @@ function AdminDashboard() {
     );
   }
 
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const dates = checkinData.map(d => new Date(d.date).setHours(0,0,0,0));
+  const hasToday = dates.includes(today.getTime());
+  let processedCheckinData = [...checkinData].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  if (!hasToday) {
+    processedCheckinData.push({ date: today.toISOString(), count: 0 });
+    processedCheckinData = processedCheckinData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 p-4 pb-24">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -442,7 +452,7 @@ function AdminDashboard() {
           <h2 className="text-xl font-semibold text-white mb-6">Check-in Trends</h2>
           <div className="h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={checkinData}>
+              <LineChart data={processedCheckinData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                 <XAxis 
                   dataKey="date" 
