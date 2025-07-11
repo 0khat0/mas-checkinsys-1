@@ -127,6 +127,10 @@ function MemberCheckin() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight drop-shadow-lg mb-4 text-center">
+            MAS Academy of Martial Arts
+          </h1>
+          <div className="h-2 rounded-full bg-gradient-to-r from-red-500 to-red-700 shadow-md mt-2 w-full mb-4" />
           <div className="w-full flex justify-center mb-4">
             <span className="text-green-400 bg-green-900/20 px-4 py-1 rounded-lg text-sm font-semibold shadow-md">
               Already Registered? Check In here!
