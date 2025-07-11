@@ -365,15 +365,20 @@ async def get_checkins_by_range(
 async def get_checkin_stats(request: Request, db: Session = Depends(get_db)):
     toronto_tz = pytz.timezone('America/Toronto')
     now = datetime.now(toronto_tz)
-    
-    # Get various statistics
+    today = now.date()
+    start = toronto_tz.localize(datetime.combine(today, datetime.min.time()))
+    end = toronto_tz.localize(datetime.combine(today, datetime.max.time()))
+    start_utc = start.astimezone(pytz.UTC)
+    end_utc = end.astimezone(pytz.UTC)
+    checkins_today_count = db.query(models.Checkin).filter(
+        models.Checkin.timestamp >= start_utc,
+        models.Checkin.timestamp <= end_utc
+    ).count()
     stats = {
         "total_members": db.query(models.Member).count(),
         "active_members": db.query(models.Member).filter(models.Member.active == True).count(),
         "total_checkins": db.query(models.Checkin).count(),
-        "checkins_today": db.query(models.Checkin).filter(
-            func.date(models.Checkin.timestamp) == now.date()
-        ).count(),
+        "checkins_today": checkins_today_count,
         "checkins_this_week": db.query(models.Checkin).filter(
             models.Checkin.timestamp >= now - timedelta(days=7)
         ).count(),
@@ -381,7 +386,6 @@ async def get_checkin_stats(request: Request, db: Session = Depends(get_db)):
             models.Checkin.timestamp >= now - timedelta(days=30)
         ).count(),
     }
-    
     return stats
 
 @app.post("/member")
