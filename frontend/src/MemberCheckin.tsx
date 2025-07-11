@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import logo from "./assets/mas-logo.png";
-import { isValidUUID, getApiUrl, clearMemberData } from "./utils";
+import { isValidUUID, getApiUrl, clearMemberData, setMemberId } from "./utils";
 
 function getDailyMuayThaiMessage() {
   const messages = [
@@ -222,7 +222,7 @@ function MemberCheckin() {
                       
                       // Store member_id if it's a valid UUID
                       if (data.id && isValidUUID(data.id)) {
-                        // setMemberId(data.id); // This line is removed
+                        setMemberId(data.id);
                       }
                       
                       const checkinRes = await fetch(`${API_URL}/checkin`, {
@@ -234,7 +234,7 @@ function MemberCheckin() {
                         const checkinData = await checkinRes.json();
                         // Update member_id from check-in response if available
                         if (checkinData.member_id && isValidUUID(checkinData.member_id)) {
-                          // setMemberId(checkinData.member_id); // This line is removed
+                          setMemberId(checkinData.member_id);
                         }
                         setStatus("success");
                         setMessage("Check-in successful! Welcome!");
