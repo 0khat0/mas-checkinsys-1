@@ -71,7 +71,7 @@ function AdminDashboard() {
     fetchTodayCheckins(); // initial fetch
     const interval = setInterval(() => {
       fetchTodayCheckins();
-    }, 1000); // every 1 second
+    }, 3500); // every 3.5 seconds
     return () => clearInterval(interval); // cleanup on unmount
   }, []);
 
