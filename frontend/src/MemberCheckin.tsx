@@ -93,7 +93,7 @@ function MemberCheckin() {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-black via-gray-900 to-red-950 flex flex-col items-center justify-center px-4 relative">
-      <div className="absolute top-6 right-6 z-10">
+      <div className="w-full flex justify-center mb-2">
         <span className="text-green-400 bg-green-900/20 px-4 py-1 rounded-lg text-sm font-semibold shadow-md">
           Already Registered? Check In here!
         </span>
