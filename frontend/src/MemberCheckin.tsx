@@ -154,20 +154,22 @@ function MemberCheckin() {
           </motion.div>
 
           {/* Green check-in message */}
-          <motion.div
-            className="w-full max-w-md mb-2"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <button
-              type="button"
-              className="w-full bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-green-400 text-center text-base font-semibold focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200"
-              onClick={() => setCheckinByName((v) => !v)}
+          {status !== "success" && (
+            <motion.div
+              className="w-full max-w-md mb-2"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
             >
-              {checkinByName ? "Back to Register" : "Already Registered? Tap Here To Check In!"}
-            </button>
-          </motion.div>
+              <button
+                type="button"
+                className="w-full bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-green-400 text-center text-base font-semibold focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200"
+                onClick={() => setCheckinByName((v) => !v)}
+              >
+                {checkinByName ? "Back to Register" : "Already Registered? Tap Here To Check In!"}
+              </button>
+            </motion.div>
+          )}
           
           {/* Status Messages */}
           <AnimatePresence mode="wait">
