@@ -291,7 +291,7 @@ function AdminDashboard() {
                     autoFocus
                   />
                 </div>
-                <div className="p-6">
+                <div className="p-6 overflow-auto max-h-[90vh]">
                   {isLoadingMembers ? (
                     <div className="flex justify-center items-center py-12">
                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500"></div>
@@ -306,7 +306,10 @@ function AdminDashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {members.map((member) => (
+                        {members.filter(m =>
+                          m.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
+                          m.email.toLowerCase().includes(memberSearch.toLowerCase())
+                        ).map((member) => (
                           <tr 
                             key={member.id}
                             className="border-b border-white/5 hover:bg-white/5 transition-colors"
