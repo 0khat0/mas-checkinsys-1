@@ -306,10 +306,7 @@ function AdminDashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {members.filter(m =>
-                          m.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
-                          m.email.toLowerCase().includes(memberSearch.toLowerCase())
-                        ).map((member) => (
+                        {members.map((member) => (
                           <tr 
                             key={member.id}
                             className="border-b border-white/5 hover:bg-white/5 transition-colors"
