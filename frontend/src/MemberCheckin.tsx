@@ -67,7 +67,8 @@ function MemberCheckin() {
             const data = await res.json();
             // Only store member_id if it's a valid UUID
             if (data.member_id && isValidUUID(data.member_id)) {
-              // setMemberId(data.member_id); // This line is removed
+              setMemberId(data.member_id);
+              console.log('Set member_id after check-in (useEffect):', data.member_id);
             }
             setStatus("success");
             setMessage("Check-in successful! Welcome back.");
