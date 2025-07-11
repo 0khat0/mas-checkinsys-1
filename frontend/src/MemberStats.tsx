@@ -132,7 +132,7 @@ function MemberStats({ memberId }: Props) {
   const percent = Math.round((weeklyCheckins / goal) * 100);
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-black to-blue-950 font-poppins overflow-x-hidden">
+    <div className="min-h-screen w-full bg-gray-900 font-poppins overflow-x-hidden">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Logo and My Profile Section */}
         {/* Remove the floating My Profile title and divider above the card. */}

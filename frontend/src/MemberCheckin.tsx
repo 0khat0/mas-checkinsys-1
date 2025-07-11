@@ -92,7 +92,7 @@ function MemberCheckin() {
   }, [status, memberEmail]);
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-red-950 font-poppins overflow-x-hidden">
+    <div className="min-h-screen w-full bg-gray-900 font-poppins overflow-x-hidden">
       <div className="w-full p-4 px-2 sm:px-4 flex flex-col items-center justify-center min-h-[100vh] relative overflow-x-hidden">
         {/* Animated background blobs */}
         <motion.div 
