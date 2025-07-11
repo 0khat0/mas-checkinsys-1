@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import logo from "./assets/mas-logo.png";
+import logo from "./assets/mass-logo.png";
 import { isValidUUID, getApiUrl, clearMemberData, setMemberId } from "./utils";
 
 function getDailyMuayThaiMessage() {
