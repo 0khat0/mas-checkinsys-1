@@ -127,10 +127,7 @@ function MemberCheckin() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight drop-shadow-lg mb-4 text-center">
-            MAS Academy of Martial Arts
-          </h1>
-          <div className="h-2 rounded-full bg-gradient-to-r from-red-500 to-red-700 shadow-md mt-2 w-full mb-4" />
+          {/* Logo, Title, and Accent Bar (single instance) */}
           <motion.div
             className="flex flex-row items-center justify-center w-full mb-4 gap-6"
             initial={{ opacity: 0, y: -20 }}
@@ -152,6 +149,18 @@ function MemberCheckin() {
                 MAS Academy of Martial Arts
               </h1>
               <div className="h-2 rounded-full bg-gradient-to-r from-red-500 to-red-700 shadow-md mt-2 w-full" />
+            </div>
+          </motion.div>
+
+          {/* Green check-in message */}
+          <motion.div
+            className="w-full max-w-md mb-2"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-green-400 text-center text-base font-semibold">
+              Already Registered? Check In here!
             </div>
           </motion.div>
           
