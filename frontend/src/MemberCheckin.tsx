@@ -343,8 +343,14 @@ function MemberCheckin() {
                       setMessage("Check-in successful! Welcome back.");
                     } else {
                       const data = await res.json();
-                      setStatus("error");
-                      setMessage(data.detail || "Check-in failed.");
+                      // If member not found, prompt to re-enter name and keep form visible
+                      if (data.detail === "Member not found") {
+                        setStatus("register"); // Stay in register mode, checkinByName remains true
+                        setMessage("Name not found. Please re-enter your full name as registered.");
+                      } else {
+                        setStatus("error");
+                        setMessage(data.detail || "Check-in failed.");
+                      }
                     }
                   } catch (error) {
                     setStatus("error");
@@ -353,6 +359,9 @@ function MemberCheckin() {
                 }}
               >
                 <div className="glass-card space-y-6 p-6">
+                  {message && (
+                    <div className="text-red-400 text-center font-semibold mb-2">{message}</div>
+                  )}
                   <motion.div 
                     className="space-y-2"
                     initial={{ opacity: 0, x: -20 }}
