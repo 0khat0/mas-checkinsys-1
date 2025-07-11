@@ -257,6 +257,72 @@ async def check_in(request: Request, member_data: dict, db: Session = Depends(ge
         "already_checked_in": False
     }
 
+@app.post("/checkin/by-name")
+@limiter.limit("5/minute")
+async def check_in_by_name(request: Request, member_data: dict, db: Session = Depends(get_db)):
+    """Handle member check-in by full name (case-insensitive, exact match)"""
+    name = member_data.get("name")
+    if not name:
+        raise HTTPException(status_code=400, detail="Name is required")
+
+    # Get member by case-insensitive exact match
+    member = db.query(models.Member).filter(func.lower(models.Member.name) == name.strip().lower()).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    # Get Toronto time
+    toronto_tz = pytz.timezone('America/Toronto')
+    now = datetime.now(toronto_tz)
+    today = now.date()
+    hour = now.hour
+    is_am = hour < 12
+
+    # Define AM/PM period start/end
+    if is_am:
+        period_start = toronto_tz.localize(datetime.combine(today, time(0, 0, 0)))
+        period_end = toronto_tz.localize(datetime.combine(today, time(11, 59, 59)))
+    else:
+        period_start = toronto_tz.localize(datetime.combine(today, time(12, 0, 0)))
+        period_end = toronto_tz.localize(datetime.combine(today, time(23, 59, 59)))
+
+    # Convert to UTC for DB query
+    period_start_utc = period_start.astimezone(pytz.UTC)
+    period_end_utc = period_end.astimezone(pytz.UTC)
+
+    # Check if already checked in this period
+    existing = db.query(models.Checkin).filter(
+        models.Checkin.member_id == member.id,
+        models.Checkin.timestamp >= period_start_utc,
+        models.Checkin.timestamp <= period_end_utc
+    ).first()
+    if existing:
+        return {
+            "message": f"Already checked in this {'AM' if is_am else 'PM' }.",
+            "member_id": member.id,
+            "timestamp": existing.timestamp,
+            "period": 'AM' if is_am else 'PM',
+            "already_checked_in": True
+        }
+
+    # Create check-in
+    checkin = models.Checkin(member_id=member.id)
+    db.add(checkin)
+    db.commit()
+    db.refresh(checkin)
+
+    # Update metrics
+    CHECKIN_COUNT.inc()
+
+    logger.info("Check-in by name successful", member_id=str(member.id), name=name)
+
+    return {
+        "message": "Check-in successful",
+        "member_id": member.id,
+        "timestamp": checkin.timestamp,
+        "period": 'AM' if is_am else 'PM',
+        "already_checked_in": False
+    }
+
 @app.get("/admin/checkins/today")
 @limiter.limit("30/minute")
 async def get_today_checkins(request: Request, db: Session = Depends(get_db)):

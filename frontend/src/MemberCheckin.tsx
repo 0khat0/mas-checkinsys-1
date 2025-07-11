@@ -36,6 +36,7 @@ function MemberCheckin() {
   const [message, setMessage] = useState<string>("");
   const [formEmail, setFormEmail] = useState("");
   const [formName, setFormName] = useState("");
+  const [checkinByName, setCheckinByName] = useState(false); // NEW: toggle for check-in by name
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("member_email");
@@ -159,9 +160,13 @@ function MemberCheckin() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-green-400 text-center text-base font-semibold">
-              Already Registered? Check In here!
-            </div>
+            <button
+              type="button"
+              className="w-full bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-green-400 text-center text-base font-semibold focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200"
+              onClick={() => setCheckinByName((v) => !v)}
+            >
+              {checkinByName ? "Back to Register" : "Already Registered? Tap Here To Check In!"}
+            </button>
           </motion.div>
           
           {/* Status Messages */}
@@ -209,9 +214,9 @@ function MemberCheckin() {
             )}
           </AnimatePresence>
 
-          {/* Registration Form */}
+          {/* Registration or Check-In by Name Form */}
           <AnimatePresence>
-            {status === "register" && (
+            {status === "register" && !checkinByName && (
               <motion.form
                 className="w-full max-w-md space-y-6"
                 initial={{ opacity: 0, y: 20 }}
@@ -233,16 +238,10 @@ function MemberCheckin() {
                       const data = await res.json();
                       localStorage.setItem("member_email", formEmail);
                       setMemberEmail(formEmail);
-                      
                       // Store member_id if it's a valid UUID
                       if (data.id && isValidUUID(data.id)) {
-                        console.log('Registration response:', data);
                         setMemberId(data.id);
-                        console.log('Set member_id after registration:', data.id);
-                      } else {
-                        console.log('Registration response missing valid id:', data);
                       }
-                      
                       const checkinRes = await fetch(`${API_URL}/checkin`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -250,13 +249,8 @@ function MemberCheckin() {
                       });
                       if (checkinRes.ok) {
                         const checkinData = await checkinRes.json();
-                        // Update member_id from check-in response if available
                         if (checkinData.member_id && isValidUUID(checkinData.member_id)) {
-                          console.log('Check-in response:', checkinData);
                           setMemberId(checkinData.member_id);
-                          console.log('Set member_id after check-in:', checkinData.member_id);
-                        } else {
-                          console.log('Check-in response missing valid member_id:', checkinData);
                         }
                         setStatus("success");
                         setMessage("Check-in successful! Welcome!");
@@ -293,7 +287,6 @@ function MemberCheckin() {
                       required
                     />
                   </motion.div>
-
                   <motion.div 
                     className="space-y-2"
                     initial={{ opacity: 0, x: -20 }}
@@ -310,7 +303,6 @@ function MemberCheckin() {
                       required
                     />
                   </motion.div>
-
                   <motion.button
                     className="w-full bg-gradient-to-r from-red-600 to-red-700 text-white py-3 px-6 rounded-lg font-semibold hover:from-red-700 hover:to-red-800 transition-all duration-300 shadow-lg hover:shadow-red-500/30"
                     whileHover={{ scale: 1.02 }}
@@ -318,6 +310,70 @@ function MemberCheckin() {
                     type="submit"
                   >
                     Register & Check In
+                  </motion.button>
+                </div>
+              </motion.form>
+            )}
+            {status === "register" && checkinByName && (
+              <motion.form
+                className="w-full max-w-md space-y-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setStatus("loading");
+                  setMessage("");
+                  try {
+                    const API_URL = getApiUrl();
+                    const res = await fetch(`${API_URL}/checkin/by-name`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ name: formName }),
+                    });
+                    if (res.ok) {
+                      const data = await res.json();
+                      if (data.member_id && isValidUUID(data.member_id)) {
+                        setMemberId(data.member_id);
+                      }
+                      setStatus("success");
+                      setMessage("Check-in successful! Welcome back.");
+                    } else {
+                      const data = await res.json();
+                      setStatus("error");
+                      setMessage(data.detail || "Check-in failed.");
+                    }
+                  } catch (error) {
+                    setStatus("error");
+                    setMessage("Network error. Please try again.");
+                  }
+                }}
+              >
+                <div className="glass-card space-y-6 p-6">
+                  <motion.div 
+                    className="space-y-2"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <label className="block text-lg font-medium text-white/90">Full Name(s)</label>
+                    <input
+                      className="input-field"
+                      placeholder="Enter your name"
+                      type="text"
+                      value={formName}
+                      onChange={(e) => setFormName(e.target.value)}
+                      required
+                    />
+                  </motion.div>
+                  <motion.button
+                    className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-6 rounded-lg font-semibold hover:from-green-700 hover:to-green-800 transition-all duration-300 shadow-lg hover:shadow-green-500/30"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="submit"
+                  >
+                    Check In
                   </motion.button>
                 </div>
               </motion.form>
