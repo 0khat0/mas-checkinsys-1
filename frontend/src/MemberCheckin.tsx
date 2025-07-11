@@ -93,11 +93,6 @@ function MemberCheckin() {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-black via-gray-900 to-red-950 flex flex-col items-center justify-center px-4 relative">
-      <div className="w-full flex justify-center mb-4">
-        <span className="text-green-400 bg-green-900/20 px-4 py-1 rounded-lg text-sm font-semibold shadow-md">
-          Already Registered? Check In here!
-        </span>
-      </div>
       <div className="w-full p-4 px-2 sm:px-4 flex flex-col items-center justify-center min-h-[100vh] relative overflow-x-hidden">
         {/* Animated background blobs */}
         <motion.div 
@@ -127,11 +122,16 @@ function MemberCheckin() {
         
         {/* Main Card */}
         <motion.div 
-          className="card w-full flex flex-col items-center px-6 py-8 space-y-6"
+          className="card w-full flex flex-col items-center px-6 py-8 space-y-6 max-w-md"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
+          <div className="w-full flex justify-center mb-4">
+            <span className="text-green-400 bg-green-900/20 px-4 py-1 rounded-lg text-sm font-semibold shadow-md">
+              Already Registered? Check In here!
+            </span>
+          </div>
           <motion.div
             className="flex flex-row items-center justify-center w-full mb-4 gap-6"
             initial={{ opacity: 0, y: -20 }}
