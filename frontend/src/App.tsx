@@ -39,7 +39,7 @@ function AppContent() {
   const memberId = getMemberId();
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen w-full bg-gray-900 text-white overflow-x-hidden">
       {/* Mobile-optimized navigation */}
       {!isAdminRoute && (
         <nav className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-lg border-t border-white/10 z-50 safe-area-pb">
