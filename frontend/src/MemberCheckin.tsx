@@ -131,11 +131,6 @@ function MemberCheckin() {
             MAS Academy of Martial Arts
           </h1>
           <div className="h-2 rounded-full bg-gradient-to-r from-red-500 to-red-700 shadow-md mt-2 w-full mb-4" />
-          <div className="w-full flex justify-center mb-4">
-            <span className="text-green-400 bg-green-900/20 px-4 py-1 rounded-lg text-sm font-semibold shadow-md">
-              Already Registered? Check In here!
-            </span>
-          </div>
           <motion.div
             className="flex flex-row items-center justify-center w-full mb-4 gap-6"
             initial={{ opacity: 0, y: -20 }}
@@ -279,7 +274,7 @@ function MemberCheckin() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.1 }}
                   >
-                    <label className="block text-lg font-medium text-white/90">Full Name</label>
+                    <label className="block text-lg font-medium text-white/90">Full Name(s)</label>
                     <input
                       className="input-field"
                       placeholder="Enter your name"
