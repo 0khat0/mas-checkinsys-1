@@ -37,6 +37,15 @@ function MemberCheckin() {
   const [formEmail, setFormEmail] = useState("");
   const [formName, setFormName] = useState("");
   const [checkinByName, setCheckinByName] = useState(false); // NEW: toggle for check-in by name
+  // Add state for multiple names
+  const [familyNames, setFamilyNames] = useState<string[]>([]);
+
+  // Helper to handle name changes
+  const handleFamilyNameChange = (idx: number, value: string) => {
+    setFamilyNames(names => names.map((n, i) => i === idx ? value : n));
+  };
+  const addFamilyMember = () => setFamilyNames(names => [...names, ""]);
+  const removeFamilyMember = (idx: number) => setFamilyNames(names => names.filter((_, i) => i !== idx));
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("member_email");
@@ -227,68 +236,74 @@ function MemberCheckin() {
                 transition={{ duration: 0.3 }}
                 onSubmit={async (e) => {
                   e.preventDefault();
+                  // Validate all names
+                  const allNames = [formName, ...familyNames];
+                  for (const name of allNames) {
+                    if (!/^\s*\S+\s+\S+/.test(name.trim())) {
+                      setMessage("Please enter a full name (first and last) for each member.");
+                      return;
+                    }
+                  }
+                  if (!/^\S+@\S+\.\S+$/.test(formEmail.trim())) {
+                    setMessage("Please enter a valid email address.");
+                    return;
+                  }
                   setStatus("loading");
                   setMessage("");
-                  try {
-                    const API_URL = getApiUrl();
-                    const res = await fetch(`${API_URL}/member`, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ email: formEmail, name: formName }),
-                    });
-                    if (res.ok) {
-                      const data = await res.json();
-                      localStorage.setItem("member_email", formEmail);
-                      setMemberEmail(formEmail);
-                      // Store member_id if it's a valid UUID
-                      if (data.id && isValidUUID(data.id)) {
-                        setMemberId(data.id);
-                      }
-                      const checkinRes = await fetch(`${API_URL}/checkin`, {
+                  const API_URL = getApiUrl();
+                  let results: string[] = [];
+                  // Register/check in each name
+                  for (const [idx, name] of allNames.entries()) {
+                    try {
+                      const res = await fetch(`${API_URL}/member`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ email: formEmail }),
+                        body: JSON.stringify({ email: formEmail, name }),
                       });
-                      if (checkinRes.ok) {
-                        const checkinData = await checkinRes.json();
-                        if (checkinData.member_id && isValidUUID(checkinData.member_id)) {
-                          setMemberId(checkinData.member_id);
+                      if (res.ok) {
+                        const data = await res.json();
+                        if (idx === 0) {
+                          localStorage.setItem("member_email", formEmail);
+                          setMemberEmail(formEmail);
+                          if (data.id && isValidUUID(data.id)) setMemberId(data.id);
                         }
-                        setStatus("success");
-                        setMessage("Check-in successful! Welcome!");
+                        // Check in
+                        const checkinRes = await fetch(`${API_URL}/checkin`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ email: formEmail }),
+                        });
+                        if (checkinRes.ok) {
+                          results.push(`${name}: Success`);
+                        } else {
+                          const err = await checkinRes.json();
+                          results.push(`${name}: Check-in failed (${err.detail || "error"})`);
+                        }
                       } else {
-                        const checkinErrorData = await checkinRes.json();
-                        setStatus("error");
-                        setMessage(checkinErrorData.detail || "Check-in failed after registration.");
+                        const err = await res.json();
+                        results.push(`${name}: Registration failed (${err.detail || "error"})`);
                       }
-                    } else {
-                      const data = await res.json();
-                      setStatus("error");
-                      setMessage(data.detail || "Registration failed.");
+                    } catch {
+                      results.push(`${name}: Network error`);
                     }
-                  } catch (error) {
-                    setStatus("error");
-                    setMessage("Network error. Please try again.");
                   }
+                  setStatus("success");
+                  setMessage(results.join("\n"));
                 }}
               >
                 <div className="glass-card space-y-6 p-6">
-                  <motion.div 
-                    className="space-y-2"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 }}
-                  >
-                    <label className="block text-lg font-medium text-white/90">Full Name(s)</label>
-                    <input
-                      className="input-field"
-                      placeholder="Enter your name"
-                      type="text"
-                      value={formName}
-                      onChange={(e) => setFormName(e.target.value)}
-                      required
-                    />
+                  <motion.div className="space-y-2" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
+                    <label className="block text-lg font-medium text-white/90">Full Name</label>
+                    <input className="input-field" placeholder="Enter your full name" type="text" value={formName} onChange={e => setFormName(e.target.value)} required />
                   </motion.div>
+                  {/* Family member fields */}
+                  {familyNames.map((name, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <input className="input-field flex-1" placeholder="Enter family member's full name" type="text" value={name} onChange={e => handleFamilyNameChange(idx, e.target.value)} required />
+                      <button type="button" className="text-red-400 font-bold px-2" onClick={() => removeFamilyMember(idx)} aria-label="Remove family member">&times;</button>
+                    </div>
+                  ))}
+                  <button type="button" className="w-full bg-blue-500/10 border border-blue-500/30 rounded-lg p-2 text-blue-400 text-center text-base font-semibold hover:bg-blue-500/20 transition-all duration-200" onClick={addFamilyMember}>Add Family Member</button>
                   <motion.div 
                     className="space-y-2"
                     initial={{ opacity: 0, x: -20 }}
@@ -325,59 +340,57 @@ function MemberCheckin() {
                 transition={{ duration: 0.3 }}
                 onSubmit={async (e) => {
                   e.preventDefault();
+                  // Validate all names
+                  const allNames = [formName, ...familyNames];
+                  for (const name of allNames) {
+                    if (!/^\s*\S+\s+\S+/.test(name.trim())) {
+                      setMessage("Please enter a full name (first and last) for each member.");
+                      return;
+                    }
+                  }
                   setStatus("loading");
                   setMessage("");
-                  try {
-                    const API_URL = getApiUrl();
-                    const res = await fetch(`${API_URL}/checkin/by-name`, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ name: formName }),
-                    });
-                    if (res.ok) {
-                      const data = await res.json();
-                      if (data.member_id && isValidUUID(data.member_id)) {
-                        setMemberId(data.member_id);
-                      }
-                      setStatus("success");
-                      setMessage("Check-in successful! Welcome back.");
-                    } else {
-                      const data = await res.json();
-                      // If member not found, prompt to re-enter name and keep form visible
-                      if (data.detail === "Member not found") {
-                        setStatus("register"); // Stay in register mode, checkinByName remains true
-                        setMessage("Name not found. Please re-enter your full name as registered.");
+                  const API_URL = getApiUrl();
+                  let results: string[] = [];
+                  for (const name of allNames) {
+                    try {
+                      const res = await fetch(`${API_URL}/checkin/by-name`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ name }),
+                      });
+                      if (res.ok) {
+                        results.push(`${name}: Success`);
                       } else {
-                        setStatus("error");
-                        setMessage(data.detail || "Check-in failed.");
+                        const data = await res.json();
+                        if (data.detail === "Member not found") {
+                          results.push(`${name}: Not found. Please re-enter full name as registered.`);
+                        } else {
+                          results.push(`${name}: Check-in failed (${data.detail || "error"})`);
+                        }
                       }
+                    } catch {
+                      results.push(`${name}: Network error`);
                     }
-                  } catch (error) {
-                    setStatus("error");
-                    setMessage("Network error. Please try again.");
                   }
+                  setStatus("success");
+                  setMessage(results.join("\n"));
                 }}
               >
                 <div className="glass-card space-y-6 p-6">
-                  {message && (
-                    <div className="text-red-400 text-center font-semibold mb-2">{message}</div>
-                  )}
-                  <motion.div 
-                    className="space-y-2"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 }}
-                  >
-                    <label className="block text-lg font-medium text-white/90">Full Name(s)</label>
-                    <input
-                      className="input-field"
-                      placeholder="Enter your name"
-                      type="text"
-                      value={formName}
-                      onChange={(e) => setFormName(e.target.value)}
-                      required
-                    />
+                  {message && (<div className="text-red-400 text-center font-semibold mb-2">{message}</div>)}
+                  <motion.div className="space-y-2" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
+                    <label className="block text-lg font-medium text-white/90">Full Name</label>
+                    <input className="input-field" placeholder="Enter your full name" type="text" value={formName} onChange={e => setFormName(e.target.value)} required />
                   </motion.div>
+                  {/* Family member fields */}
+                  {familyNames.map((name, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <input className="input-field flex-1" placeholder="Enter family member's full name" type="text" value={name} onChange={e => handleFamilyNameChange(idx, e.target.value)} required />
+                      <button type="button" className="text-red-400 font-bold px-2" onClick={() => removeFamilyMember(idx)} aria-label="Remove family member">&times;</button>
+                    </div>
+                  ))}
+                  <button type="button" className="w-full bg-blue-500/10 border border-blue-500/30 rounded-lg p-2 text-blue-400 text-center text-base font-semibold hover:bg-blue-500/20 transition-all duration-200" onClick={addFamilyMember}>Add Family Member</button>
                   <motion.button
                     className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-6 rounded-lg font-semibold hover:from-green-700 hover:to-green-800 transition-all duration-300 shadow-lg hover:shadow-green-500/30"
                     whileHover={{ scale: 1.02 }}
