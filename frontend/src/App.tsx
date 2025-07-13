@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import ErrorBoundary from "./ErrorBoundary";
@@ -22,6 +22,10 @@ const LoadingSpinner = () => (
 );
 
 function App() {
+  useEffect(() => {
+    document.body.style.overflowX = 'hidden';
+    return () => { document.body.style.overflowX = ''; };
+  }, []);
   return (
     <ErrorBoundary>
       <Router>
@@ -39,7 +43,7 @@ function AppContent() {
   const memberId = getMemberId();
 
   return (
-    <div className="min-h-screen w-full bg-gray-900 text-white overflow-x-hidden">
+    <div className="bg-gray-900 text-white">
       {/* Mobile-optimized navigation */}
       {!isAdminRoute && (
         <nav className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-lg border-t border-white/10 z-50 safe-area-pb">
