@@ -164,7 +164,7 @@ function MemberCheckin() {
           >
             <button
               type="button"
-              className="w-full bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-green-400 text-center text-base font-semibold focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200"
+              className="w-full bg-gradient-to-r from-black via-gray-800 to-gray-900 border border-gray-800 rounded-lg p-3 text-green-400 text-center text-base font-semibold focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200"
               onClick={() => setCheckinByName((v) => !v)}
             >
               {checkinByName ? "Back to Register" : "Already Registered? Tap Here To Check In!"}
@@ -193,7 +193,7 @@ function MemberCheckin() {
               )}
               {status === "success" && (
                 <motion.div 
-                  className="glass-card bg-green-500/10 p-6 text-center"
+                  className="glass-card bg-gradient-to-r from-black via-gray-800 to-gray-900 p-6 text-center"
                   initial={{ scale: 0.9 }}
                   animate={{ scale: 1 }}
                   transition={{ type: "spring", stiffness: 200, damping: 15 }}
