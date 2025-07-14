@@ -150,7 +150,7 @@ function MemberCheckin() {
                 style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7)' }}>
               MAS Academy of Martial Arts
             </h1>
-            <div className="h-2 rounded-full bg-gradient-to-r from-black to-gray-800 shadow-md mt-2 w-full" />
+            <div className="h-2 rounded-full bg-gradient-to-r from-red-700 via-red-500 to-pink-500 shadow-md mt-2 w-full" />
           </div>
         </motion.div>
         {/* Green check-in message and forms, etc. remain unchanged */}
@@ -311,7 +311,7 @@ function MemberCheckin() {
                   />
                 </motion.div>
                 <motion.button
-                  className="w-full bg-gradient-to-r from-black to-gray-800 text-white py-3 px-6 rounded-lg font-semibold hover:from-gray-800 hover:to-gray-900 transition-all duration-300 shadow-lg hover:shadow-black/30"
+                  className="w-full bg-gradient-to-r from-red-700 via-red-500 to-pink-500 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-red-700 transition-all duration-300 shadow-lg hover:shadow-black/30"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
