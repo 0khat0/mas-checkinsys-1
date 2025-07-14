@@ -118,6 +118,37 @@
   }
 }
 
+@keyframes accent-bar-waves {
+  0% {
+    background-position: 0% 50%;
+    filter: hue-rotate(0deg);
+  }
+  25% {
+    background-position: 50% 60%;
+    filter: hue-rotate(20deg);
+  }
+  50% {
+    background-position: 100% 50%;
+    filter: hue-rotate(0deg);
+  }
+  75% {
+    background-position: 50% 40%;
+    filter: hue-rotate(-20deg);
+  }
+  100% {
+    background-position: 0% 50%;
+    filter: hue-rotate(0deg);
+  }
+}
+
+.animated-accent-bar {
+  background: linear-gradient(120deg, #be185d, #dc2626, #ef4444, #f472b6, #f59e42, #dc2626, #be185d);
+  background-size: 300% 200%;
+  animation: accent-bar-waves 10s ease-in-out infinite;
+  filter: hue-rotate(0deg);
+  box-shadow: 0 2px 16px 0 rgba(239,68,68,0.25), 0 1.5px 8px 0 rgba(245,158,66,0.12);
+}
+
 html, body {
   overflow-x: hidden !important;
   width: 100vw;

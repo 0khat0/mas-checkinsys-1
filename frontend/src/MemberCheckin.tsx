@@ -150,7 +150,7 @@ function MemberCheckin() {
                 style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7)' }}>
               MAS Academy of Martial Arts
             </h1>
-            <div className="h-2 rounded-full bg-gradient-to-r from-red-700 via-red-500 to-pink-500 shadow-md mt-2 w-full" />
+            <div className="h-2 rounded-full animated-accent-bar shadow-md mt-2 w-full" />
           </div>
         </motion.div>
         {/* Green check-in message and forms, etc. remain unchanged */}
