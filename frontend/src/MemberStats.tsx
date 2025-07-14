@@ -16,7 +16,7 @@ interface Props {
   memberId: string;
 }
 
-const DEFAULT_GOAL = 5;
+const DEFAULT_GOAL = 3;
 
 
 
@@ -382,29 +382,48 @@ function MemberStats({ memberId }: Props) {
                 <p className="text-white/50 text-xs mt-2">
                   {percent}% of weekly goal
                 </p>
-                {/* Simple Goal Input */}
-                <div className="flex items-center gap-2 mt-3">
-                  <span className="text-white/50 text-xs">Goal:</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={goal}
-                    onChange={e => {
-                      const value = e.target.value.replace(/[^0-9]/g, '');
-                      const numValue = parseInt(value) || 0;
-                      if (numValue >= 0 && numValue <= 100) {
-                        setGoal(numValue);
-                      }
-                    }}
-                    onBlur={e => {
-                      const value = parseInt(e.target.value) || 0;
-                      if (value < 1) setGoal(1);
-                      if (value > 100) setGoal(100);
-                    }}
-                    className="w-16 px-2 py-1 rounded bg-gray-600 text-white border border-gray-500 focus:outline-none focus:ring-1 focus:ring-red-500 text-center text-sm"
-                    placeholder="5"
-                  />
+                {/* Weekly Goal Input */}
+                <div className="mt-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-white/50 text-xs">Weekly Goal:</span>
+                    <span className="text-white/30 text-xs">Max: 7 days</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setGoal(Math.max(1, goal - 1))}
+                      className="w-8 h-8 rounded-full bg-gray-600 hover:bg-gray-500 text-white font-bold text-lg flex items-center justify-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500"
+                      disabled={goal <= 1}
+                    >
+                      -
+                    </button>
+                    <input
+                      type="number"
+                      min="1"
+                      max="7"
+                      value={goal}
+                      onChange={e => {
+                        const value = parseInt(e.target.value) || 1;
+                        const clampedValue = Math.max(1, Math.min(7, value));
+                        setGoal(clampedValue);
+                      }}
+                      onBlur={e => {
+                        const value = parseInt(e.target.value) || 1;
+                        const clampedValue = Math.max(1, Math.min(7, value));
+                        setGoal(clampedValue);
+                      }}
+                      className="w-12 px-2 py-1 rounded bg-gray-600 text-white border border-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 text-center text-sm font-semibold"
+                      style={{ WebkitAppearance: 'none', MozAppearance: 'textfield' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setGoal(Math.min(7, goal + 1))}
+                      className="w-8 h-8 rounded-full bg-gray-600 hover:bg-gray-500 text-white font-bold text-lg flex items-center justify-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500"
+                      disabled={goal >= 7}
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.div>
