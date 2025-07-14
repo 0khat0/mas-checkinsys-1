@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { isValidUUID, getApiUrl, clearMemberData } from './utils';
+import { isValidUUID, getApiUrl, clearMemberData, getTorontoTime, getTorontoDateString, getMondayOfCurrentWeekToronto, getTorontoDayOfWeek } from './utils';
 
 interface MemberStats {
   monthly_check_ins: number;
@@ -18,12 +18,7 @@ interface Props {
 
 const DEFAULT_GOAL = 5;
 
-function getMondayOfCurrentWeek(date: Date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is Sunday
-  return new Date(d.setDate(diff));
-}
+
 
 function MemberStats({ memberId }: Props) {
   const [stats, setStats] = useState<MemberStats | null>(null);
@@ -69,11 +64,15 @@ function MemberStats({ memberId }: Props) {
         setEditName(data.name || '');
         setEditEmail(data.email || '');
         if (data && data.check_in_dates && Array.isArray(data.check_in_dates)) {
-          const now = new Date();
-          const monday = getMondayOfCurrentWeek(now);
+          const now = getTorontoTime();
+          const monday = getMondayOfCurrentWeekToronto(now);
+          
+          const mondayString = getTorontoDateString(monday);
+          const todayString = getTorontoDateString(now);
+          
           const weekCheckins = data.check_in_dates.filter((d: string) => {
-            const date = new Date(d);
-            return date >= monday && date <= now;
+            const checkinDateString = d.split('T')[0]; // Get just the date part from ISO string
+            return checkinDateString >= mondayString && checkinDateString <= todayString;
           }).length;
           setWeeklyCheckins(weekCheckins);
         } else {
@@ -281,6 +280,29 @@ function MemberStats({ memberId }: Props) {
               {editSuccess}
             </motion.div>
           )}
+        </motion.div>
+
+        {/* Debug Timezone Info - Remove this after testing */}
+        <motion.div 
+          className="bg-gray-800/50 rounded-xl p-4 backdrop-blur-sm border border-yellow-500/20"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.05 }}
+        >
+          <div className="text-center">
+            <p className="text-yellow-400 text-sm font-medium mb-2">🌍 Toronto Timezone Debug Info</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-white/70">
+              <div>
+                <span className="text-white/50">Date:</span> {getTorontoDateString()}
+              </div>
+              <div>
+                <span className="text-white/50">Day:</span> {getTorontoDayOfWeek()}
+              </div>
+              <div>
+                <span className="text-white/50">Time:</span> {getTorontoTime().toLocaleTimeString('en-US', { timeZone: 'America/Toronto' })}
+              </div>
+            </div>
+          </div>
         </motion.div>
 
         {/* Stats Section */}

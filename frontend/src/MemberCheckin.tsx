@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import logo from "./assets/mas-logo.png";
-import { isValidUUID, getApiUrl, clearMemberData, setMemberId } from "./utils";
+import { isValidUUID, getApiUrl, clearMemberData, setMemberId, getTorontoTime } from "./utils";
 
 function getDailyMuayThaiMessage() {
   const messages = [
@@ -21,8 +21,8 @@ function getDailyMuayThaiMessage() {
     "You are your only competition!",
     "Make every session count!"
   ];
-  // Use the day of the year to pick a message
-  const now = new Date();
+  // Use the day of the year to pick a message (Toronto time)
+  const now = getTorontoTime();
   const start = new Date(now.getFullYear(), 0, 0);
   const diff = now.getTime() - start.getTime();
   const oneDay = 1000 * 60 * 60 * 24;
@@ -193,7 +193,7 @@ function MemberCheckin() {
               )}
               {status === "success" && (
                 <motion.div 
-                  className="glass-card bg-gradient-to-r from-black via-gray-800 to-gray-900 p-6 text-center"
+                  className="glass-card bg-gradient-to-r from-green-800 via-green-700 to-green-600 p-6 text-center"
                   initial={{ scale: 0.9 }}
                   animate={{ scale: 1 }}
                   transition={{ type: "spring", stiffness: 200, damping: 15 }}

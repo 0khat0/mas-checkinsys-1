@@ -11,6 +11,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
+import { getTorontoTime, getTorontoDateString } from './utils';
 
 interface DailyCheckin {
   checkin_id: string;
@@ -31,8 +32,8 @@ function AdminDashboard() {
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [dateRange, setDateRange] = useState<'week' | 'month' | 'year' | 'custom'>('week');
-  const [startDate, setStartDate] = useState(new Date());
-  const [endDate, setEndDate] = useState(new Date());
+  const [startDate, setStartDate] = useState(getTorontoTime());
+  const [endDate, setEndDate] = useState(getTorontoTime());
   const [groupBy, setGroupBy] = useState<'day' | 'week' | 'month' | 'year'>('day');
   const [checkinData, setCheckinData] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -97,7 +98,7 @@ function AdminDashboard() {
   };
 
   const updateDateRange = (range: 'week' | 'month' | 'year' | 'custom') => {
-    const now = new Date();
+    const now = getTorontoTime();
     switch (range) {
       case 'week':
         setStartDate(startOfWeek(now));
@@ -219,7 +220,7 @@ function AdminDashboard() {
     const dateStr = new Date(d.date).toISOString().slice(0, 10); // YYYY-MM-DD
     dateMap.set(dateStr, (dateMap.get(dateStr) || 0) + (d.count || 0));
   });
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = getTorontoDateString();
   if (!dateMap.has(todayStr)) {
     dateMap.set(todayStr, 0);
   }
