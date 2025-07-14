@@ -102,7 +102,7 @@ function MemberCheckin() {
   }, [status, memberEmail]);
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-black via-gray-900 to-red-950 flex flex-col items-center justify-center px-0 relative">
+    <div className="min-h-screen w-full bg-gradient-to-br from-black via-gray-900 to-red-950 font-poppins relative overflow-hidden">
       {/* Animated background blobs */}
       <motion.div 
         className="floating-background bg-blob-1"
@@ -129,7 +129,7 @@ function MemberCheckin() {
         }}
       />
       {/* Unified Main Content, no extra min-h-screen, no overflow-x-hidden, no extra wrappers */}
-      <div className="flex flex-col items-center justify-center w-full px-4 py-8 space-y-6">
+      <div className="flex flex-col items-center justify-center w-full min-h-screen px-4 py-8 space-y-6">
         <motion.div
           className="flex flex-row items-center justify-center w-full mb-4 gap-6"
           initial={{ opacity: 0, y: -20 }}
