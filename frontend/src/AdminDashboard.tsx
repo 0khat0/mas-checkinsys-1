@@ -11,7 +11,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
-import { getTorontoTime, getTorontoDateString } from './utils';
+import { getTorontoTime, getTorontoDateString, getTorontoDayOfWeek } from './utils';
 
 interface DailyCheckin {
   checkin_id: string;
@@ -239,6 +239,29 @@ function AdminDashboard() {
         >
           Admin Dashboard
         </motion.h1>
+
+        {/* Debug Timezone Info */}
+        <motion.div 
+          className="bg-gray-800/50 rounded-xl p-4 backdrop-blur-sm border border-yellow-500/20"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.05 }}
+        >
+          <div className="text-center">
+            <p className="text-yellow-400 text-sm font-medium mb-2">🌍 Toronto Timezone Debug Info</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-white/70">
+              <div>
+                <span className="text-white/50">Date:</span> {getTorontoDateString()}
+              </div>
+              <div>
+                <span className="text-white/50">Day:</span> {getTorontoDayOfWeek()}
+              </div>
+              <div>
+                <span className="text-white/50">Time:</span> {getTorontoTime().toLocaleTimeString('en-US', { timeZone: 'America/Toronto' })}
+              </div>
+            </div>
+          </div>
+        </motion.div>
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">

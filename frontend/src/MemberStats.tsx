@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { isValidUUID, getApiUrl, clearMemberData, getTorontoTime, getTorontoDateString, getMondayOfCurrentWeekToronto, getTorontoDayOfWeek } from './utils';
+import { isValidUUID, getApiUrl, clearMemberData, getTorontoTime, getTorontoDateString, getMondayOfCurrentWeekToronto } from './utils';
 
 interface MemberStats {
   monthly_check_ins: number;
@@ -282,28 +282,7 @@ function MemberStats({ memberId }: Props) {
           )}
         </motion.div>
 
-        {/* Debug Timezone Info - Remove this after testing */}
-        <motion.div 
-          className="bg-gray-800/50 rounded-xl p-4 backdrop-blur-sm border border-yellow-500/20"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.05 }}
-        >
-          <div className="text-center">
-            <p className="text-yellow-400 text-sm font-medium mb-2">🌍 Toronto Timezone Debug Info</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-white/70">
-              <div>
-                <span className="text-white/50">Date:</span> {getTorontoDateString()}
-              </div>
-              <div>
-                <span className="text-white/50">Day:</span> {getTorontoDayOfWeek()}
-              </div>
-              <div>
-                <span className="text-white/50">Time:</span> {getTorontoTime().toLocaleTimeString('en-US', { timeZone: 'America/Toronto' })}
-              </div>
-            </div>
-          </div>
-        </motion.div>
+
 
         {/* Stats Section */}
         <motion.div 
@@ -384,9 +363,8 @@ function MemberStats({ memberId }: Props) {
                 </p>
                 {/* Weekly Goal Input */}
                 <div className="mt-3">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="mb-2">
                     <span className="text-white/50 text-xs">Weekly Goal:</span>
-                    <span className="text-white/30 text-xs">Max: 7 days</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
