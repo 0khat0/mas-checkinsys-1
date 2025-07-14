@@ -294,7 +294,7 @@ function MemberCheckin() {
                   </div>
                 ))}
                 <button type="button" className="flex items-center gap-1 px-3 py-1 border border-gray-700 rounded-md text-sm text-white bg-transparent hover:bg-gray-800 transition-all" onClick={addFamilyMember}>
-                  <span className="text-lg font-bold">+</span> <span className="sr-only">Add Family Member</span>
+                  <span className="text-lg font-bold">+</span> <span>Add Family Member</span>
                 </button>
                 <motion.div 
                   className="space-y-2"
@@ -383,7 +383,7 @@ function MemberCheckin() {
                   </div>
                 ))}
                 <button type="button" className="flex items-center gap-1 px-3 py-1 border border-gray-700 rounded-md text-sm text-white bg-transparent hover:bg-gray-800 transition-all" onClick={addFamilyMember}>
-                  <span className="text-lg font-bold">+</span> <span className="sr-only">Add Family Member</span>
+                  <span className="text-lg font-bold">+</span> <span>Add Family Member</span>
                 </button>
                 <motion.button
                   className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-6 rounded-lg font-semibold hover:from-green-700 hover:to-green-800 transition-all duration-300 shadow-lg hover:shadow-green-500/30"
