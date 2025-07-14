@@ -344,6 +344,7 @@ function MemberCheckin() {
                 setMessage("");
                 const API_URL = getApiUrl();
                 let results: string[] = [];
+                let anyNotFound = false;
                 for (const name of allNames) {
                   try {
                     const res = await fetch(`${API_URL}/checkin/by-name`, {
@@ -356,7 +357,8 @@ function MemberCheckin() {
                     } else {
                       const data = await res.json();
                       if (data.detail === "Member not found") {
-                        results.push(`${name}: Not found. Please re-enter full name as registered.`);
+                        anyNotFound = true;
+                        results.push(`${name}: Not found.`);
                       } else {
                         results.push(`${name}: Check-in failed (${data.detail || "error"})`);
                       }
@@ -365,8 +367,15 @@ function MemberCheckin() {
                     results.push(`${name}: Network error`);
                   }
                 }
-                setStatus("success");
-                setMessage(results.join("\n"));
+                if (anyNotFound) {
+                  setStatus("register"); // keep form open
+                  setFormName("");
+                  setFamilyNames([]);
+                  setMessage("Name not found. Please register or re-enter your name.");
+                } else {
+                  setStatus("success");
+                  setMessage(results.join("\n"));
+                }
               }}
             >
               <div className="glass-card space-y-6 p-6">
