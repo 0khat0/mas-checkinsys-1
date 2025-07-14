@@ -264,7 +264,7 @@ function MemberCheckin() {
                         body: JSON.stringify({ email: formEmail }),
                       });
                       if (checkinRes.ok) {
-                        results.push(`${name}: Success`);
+                        results.push(`${name}: Check-in confirmed`);
                       } else {
                         const err = await checkinRes.json();
                         results.push(`${name}: Check-in failed (${err.detail || "error"})`);
@@ -353,7 +353,7 @@ function MemberCheckin() {
                       body: JSON.stringify({ name }),
                     });
                     if (res.ok) {
-                      results.push(`${name}: Success`);
+                      results.push(`${name}: Check-in confirmed`);
                     } else {
                       const data = await res.json();
                       if (data.detail === "Member not found") {

@@ -366,7 +366,7 @@ function MemberStats({ memberId }: Props) {
                   <div className="mb-2">
                     <span className="text-white/50 text-xs">Weekly Goal:</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 w-full justify-center">
                     <button
                       type="button"
                       onClick={() => setGoal(Math.max(1, goal - 1))}
