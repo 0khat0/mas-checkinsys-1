@@ -117,3 +117,9 @@
     transform: translate(-50px, 50px) rotate(270deg);
   }
 }
+
+html, body {
+  overflow-x: hidden !important;
+  width: 100vw;
+  max-width: 100vw;
+}
