@@ -164,7 +164,7 @@ function MemberCheckin() {
           >
             <button
               type="button"
-              className="w-full bg-gradient-to-r from-black via-gray-800 to-gray-900 border border-gray-800 rounded-lg p-3 text-green-400 text-center text-base font-semibold focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200"
+              className="w-full bg-gradient-to-r from-black via-gray-800 to-gray-900 border border-gray-800 rounded-lg p-3 text-white text-center text-base font-semibold focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200"
               onClick={() => setCheckinByName((v) => !v)}
             >
               {checkinByName ? "Back to Register" : "Already Registered? Tap Here To Check In!"}
@@ -198,7 +198,7 @@ function MemberCheckin() {
                   animate={{ scale: 1 }}
                   transition={{ type: "spring", stiffness: 200, damping: 15 }}
                 >
-                  <p className="text-xl font-semibold text-green-400">✓ {message}</p>
+                  <p className="text-xl font-semibold text-white">✓ {message}</p>
                   <p className="mt-2 text-lg text-white/90 font-medium">{getDailyMuayThaiMessage()}</p>
                 </motion.div>
               )}
