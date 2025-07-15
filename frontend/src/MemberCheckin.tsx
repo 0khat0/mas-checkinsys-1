@@ -202,12 +202,6 @@ function MemberCheckin() {
                 >
                   <p className="text-xl font-semibold text-white">✓ {message}</p>
                   <p className="mt-2 text-lg text-white/90 font-medium">{getDailyMuayThaiMessage()}</p>
-                  <button
-                    className="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg"
-                    onClick={() => navigate('/profile')}
-                  >
-                    Go to Profile
-                  </button>
                 </motion.div>
               )}
               {status === "error" && (

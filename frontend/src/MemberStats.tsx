@@ -249,7 +249,6 @@ function MemberStats({ memberId }: Props) {
                   <div className="text-white text-lg font-semibold">{stats.email || 'Not set'}</div>
                 </div>
               </div>
-              
               <button
                 className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors duration-200 flex items-center gap-2"
                 onClick={() => setEditMode(true)}
