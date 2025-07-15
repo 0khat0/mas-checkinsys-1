@@ -10,7 +10,7 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, addDays, addMonths, isBefore, isAfter, isEqual } from 'date-fns';
 import { getTorontoTime, getTorontoDateString, getTorontoDayOfWeek } from './utils';
 
 interface DailyCheckin {
@@ -183,6 +183,50 @@ function AdminDashboard() {
     }
   };
 
+  // --- NEW: Generate full date range and align to Toronto time ---
+  function generateDateRange(start: Date, end: Date, group: 'day' | 'week' | 'month' | 'year') {
+    const range = [];
+    let current = new Date(start);
+    if (group === 'day') {
+      while (current <= end) {
+        range.push(format(current, 'yyyy-MM-dd'));
+        current = addDays(current, 1);
+      }
+    } else if (group === 'month') {
+      while (current <= end) {
+        range.push(format(current, 'yyyy-MM'));
+        current = addMonths(current, 1);
+      }
+    }
+    // Add more groupings if needed
+    return range;
+  }
+
+  // --- NEW: Map check-ins to Toronto-local date string ---
+  function toTorontoDateString(dateStr: string, group: 'day' | 'week' | 'month' | 'year') {
+    const date = new Date(dateStr);
+    if (group === 'month') {
+      return format(date, 'yyyy-MM');
+    }
+    // Default to day
+    return format(date, 'yyyy-MM-dd');
+  }
+
+  // --- NEW: Build processed data with zero-fill ---
+  let processedCheckinData: { date: string, count: number }[] = [];
+  if (groupBy === 'day' || groupBy === 'month') {
+    const allDates = generateDateRange(startDate, endDate, groupBy);
+    const countMap = new Map<string, number>();
+    checkinData.forEach(d => {
+      const key = toTorontoDateString(d.date, groupBy);
+      countMap.set(key, (countMap.get(key) || 0) + (d.count || 0));
+    });
+    processedCheckinData = allDates.map(date => ({
+      date: groupBy === 'month' ? date + '-01T00:00:00.000Z' : date + 'T00:00:00.000Z',
+      count: countMap.get(date) || 0
+    }));
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-900">
@@ -213,20 +257,6 @@ function AdminDashboard() {
       </div>
     );
   }
-
-  // Group checkinData by date (YYYY-MM-DD) and sum counts
-  const dateMap = new Map<string, number>();
-  checkinData.forEach(d => {
-    const dateStr = new Date(d.date).toISOString().slice(0, 10); // YYYY-MM-DD
-    dateMap.set(dateStr, (dateMap.get(dateStr) || 0) + (d.count || 0));
-  });
-  const todayStr = getTorontoDateString();
-  if (!dateMap.has(todayStr)) {
-    dateMap.set(todayStr, 0);
-  }
-  const processedCheckinData = Array.from(dateMap.entries())
-    .map(([date, count]) => ({ date: date + 'T00:00:00.000Z', count }))
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 p-4 pb-24">
@@ -485,16 +515,18 @@ function AdminDashboard() {
                 <XAxis 
                   dataKey="date" 
                   stroke="rgba(255,255,255,0.5)"
-                  tickFormatter={(date) => format(new Date(date), groupBy === 'year' ? 'yyyy' : groupBy === 'month' ? 'MMM yyyy' : 'MMM d')}
+                  tickFormatter={(date) => groupBy === 'month' ? format(new Date(date), 'MMM yyyy') : format(new Date(date), 'MMM d')}
+                  minTickGap={10}
                 />
-                <YAxis stroke="rgba(255,255,255,0.5)" />
+                <YAxis stroke="rgba(255,255,255,0.5)" allowDecimals={false} />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    backgroundColor: 'rgba(0,0,0,0.85)',
                     border: '1px solid rgba(255,255,255,0.2)',
                     borderRadius: '8px',
                   }}
-                  labelFormatter={(date) => format(new Date(date), 'PPP')}
+                  labelFormatter={(date) => groupBy === 'month' ? format(new Date(date), 'MMMM yyyy') : format(new Date(date), 'PPP')}
+                  formatter={(value: any) => [`${value} check-in${value === 1 ? '' : 's'}`, '']}
                 />
                 <Legend />
                 <Line
@@ -502,9 +534,10 @@ function AdminDashboard() {
                   dataKey="count"
                   name="Check-ins"
                   stroke="#ef4444"
-                  strokeWidth={2}
-                  dot={false}
+                  strokeWidth={3}
+                  dot={{ r: 4, stroke: '#fff', strokeWidth: 2 }}
                   activeDot={{ r: 8 }}
+                  isAnimationActive={true}
                 />
               </LineChart>
             </ResponsiveContainer>
