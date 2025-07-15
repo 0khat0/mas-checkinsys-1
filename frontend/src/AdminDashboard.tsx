@@ -190,8 +190,6 @@ function AdminDashboard() {
     while (current <= end) {
       if (group === 'month') {
         // Set to first of month, preserve timezone offset
-        const iso = new Date(current.getFullYear(), current.getMonth(), 1).toISOString().slice(0, 10);
-        // Use Toronto offset
         const toronto = new Date(Date.UTC(current.getFullYear(), current.getMonth(), 1));
         range.push(toronto.toISOString().split('T')[0]);
         current = addMonths(current, 1);
