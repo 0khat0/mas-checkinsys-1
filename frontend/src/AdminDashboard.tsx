@@ -11,7 +11,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, addDays, addMonths } from 'date-fns';
-import { getTorontoTime, getTorontoDateString, getTorontoDayOfWeek } from './utils';
+import { getTorontoTime } from './utils';
 
 interface DailyCheckin {
   checkin_id: string;
@@ -183,46 +183,56 @@ function AdminDashboard() {
     }
   };
 
-  // --- NEW: Generate full date range using backend's Toronto-local ISO date strings ---
-  function generateDateRangeISO(start: Date, end: Date, group: 'day' | 'month') {
+  // --- Generate Toronto-local ISO string for a date (YYYY-MM-DDTHH:mm:ss-04:00) ---
+  function toTorontoISO(date: Date) {
+    // Always midnight Toronto time
+    const tzDate = new Date(date.toLocaleString('en-US', { timeZone: 'America/Toronto' }));
+    tzDate.setHours(0, 0, 0, 0);
+    // Format as ISO with offset
+    const offset = -tzDate.getTimezoneOffset();
+    const sign = offset >= 0 ? '+' : '-';
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const absOffset = Math.abs(offset);
+    const hours = pad(Math.floor(absOffset / 60));
+    const mins = pad(absOffset % 60);
+    return `${tzDate.getFullYear()}-${pad(tzDate.getMonth() + 1)}-${pad(tzDate.getDate())}T00:00:00${sign}${hours}:${mins}`;
+  }
+
+  // --- Generate full Toronto-local ISO date range for zero-filling ---
+  function generateTorontoISORange(start: Date, end: Date, group: 'day' | 'month') {
     const range = [];
     let current = new Date(start);
-    while (current <= end) {
-      if (group === 'month') {
-        // Set to first of month, preserve timezone offset
-        const toronto = new Date(Date.UTC(current.getFullYear(), current.getMonth(), 1));
-        range.push(toronto.toISOString().split('T')[0]);
+    if (group === 'month') {
+      current = new Date(current.getFullYear(), current.getMonth(), 1);
+      end = new Date(end.getFullYear(), end.getMonth(), 1);
+      while (current <= end) {
+        range.push(toTorontoISO(current));
         current = addMonths(current, 1);
-      } else {
-        // Use Toronto-local date string (YYYY-MM-DD) and preserve offset
-        const toronto = new Date(current.getTime());
-        range.push(toronto.toISOString().split('T')[0]);
+      }
+    } else {
+      while (current <= end) {
+        range.push(toTorontoISO(current));
         current = addDays(current, 1);
       }
     }
     return range;
   }
 
-  // --- NEW: Build processed data with zero-fill using backend's ISO date strings ---
+  // --- Build processed data with zero-fill using backend's ISO date strings ---
   let processedCheckinData: { date: string, count: number }[] = [];
-  if (groupBy === 'day' || groupBy === 'month') {
-    // Use backend's date string as key
-    const countMap = new Map<string, number>();
-    checkinData.forEach(d => {
-      // Use only the date part (YYYY-MM-DD) for grouping
-      const key = d.date.slice(0, 10);
-      countMap.set(key, (countMap.get(key) || 0) + (d.count || 0));
-    });
-    const allDates = generateDateRangeISO(startDate, endDate, groupBy);
-    processedCheckinData = allDates.map(date => {
-      // Find the original backend ISO string for this date (with offset)
-      const backendEntry = checkinData.find(d => d.date.slice(0, 10) === date);
-      return {
-        date: backendEntry ? backendEntry.date : date + 'T00:00:00-04:00', // fallback to Toronto offset
-        count: countMap.get(date) || 0
-      };
-    });
-  }
+  let autoGroup: 'day' | 'month' = 'day';
+  if (dateRange === 'year') autoGroup = 'month';
+  if (dateRange === 'week' || dateRange === 'month') autoGroup = 'day';
+  const countMap = new Map<string, number>();
+  checkinData.forEach(d => {
+    // Use backend's ISO string as key
+    countMap.set(d.date, (countMap.get(d.date) || 0) + (d.count || 0));
+  });
+  const allDates = generateTorontoISORange(startDate, endDate, autoGroup);
+  processedCheckinData = allDates.map(date => ({
+    date,
+    count: countMap.get(date) || 0
+  }));
 
   if (!isAuthenticated) {
     return (
@@ -278,10 +288,10 @@ function AdminDashboard() {
             <p className="text-yellow-400 text-sm font-medium mb-2">🌍 Toronto Timezone Debug Info</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-white/70">
               <div>
-                <span className="text-white/50">Date:</span> {getTorontoDateString()}
+                <span className="text-white/50">Date:</span> {getTorontoTime().toLocaleDateString('en-US', { timeZone: 'America/Toronto' })}
               </div>
               <div>
-                <span className="text-white/50">Day:</span> {getTorontoDayOfWeek()}
+                <span className="text-white/50">Day:</span> {getTorontoTime().toLocaleDateString('en-US', { weekday: 'long', timeZone: 'America/Toronto' })}
               </div>
               <div>
                 <span className="text-white/50">Time:</span> {getTorontoTime().toLocaleTimeString('en-US', { timeZone: 'America/Toronto' })}
@@ -432,42 +442,30 @@ function AdminDashboard() {
           </div>
         </motion.div>
 
-        {/* Date Range Controls */}
+        {/* Date Range Controls - Redesigned */}
         <motion.div 
           className="glass-card p-6 mb-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
         >
-          <div className="flex flex-wrap gap-4 mb-4">
-            <button
-              onClick={() => setDateRange('week')}
-              className={`button-primary ${dateRange === 'week' ? 'bg-red-600' : ''}`}
-            >
-              This Week
-            </button>
-            <button
-              onClick={() => setDateRange('month')}
-              className={`button-primary ${dateRange === 'month' ? 'bg-red-600' : ''}`}
-            >
-              This Month
-            </button>
-            <button
-              onClick={() => setDateRange('year')}
-              className={`button-primary ${dateRange === 'year' ? 'bg-red-600' : ''}`}
-            >
-              This Year
-            </button>
-            <button
-              onClick={() => setDateRange('custom')}
-              className={`button-primary ${dateRange === 'custom' ? 'bg-red-600' : ''}`}
-            >
-              Custom Range
-            </button>
+          <div className="flex flex-wrap gap-2 mb-4 justify-center">
+            {['week', 'month', 'year', 'custom'].map((range) => (
+              <button
+                key={range}
+                onClick={() => setDateRange(range as any)}
+                className={`px-5 py-2 rounded-full font-semibold transition-all duration-200 shadow-sm border-2 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm
+                  ${dateRange === range ? 'bg-gradient-to-r from-red-600 to-red-700 text-white border-red-600 scale-105' : 'bg-gray-800 text-white/70 border-gray-700 hover:bg-gray-700'}`}
+              >
+                {range === 'week' && 'This Week'}
+                {range === 'month' && 'This Month'}
+                {range === 'year' && 'This Year'}
+                {range === 'custom' && 'Custom'}
+              </button>
+            ))}
           </div>
-
           {dateRange === 'custom' && (
-            <div className="flex flex-wrap gap-4 mb-4">
+            <div className="flex flex-wrap gap-4 mb-4 justify-center">
               <input
                 type="date"
                 value={format(startDate, 'yyyy-MM-dd')}
@@ -482,19 +480,6 @@ function AdminDashboard() {
               />
             </div>
           )}
-
-          <div className="flex gap-4">
-            <select
-              value={groupBy}
-              onChange={(e) => setGroupBy(e.target.value as 'day' | 'week' | 'month' | 'year')}
-              className="input-field"
-            >
-              <option value="day">Group by Day</option>
-              <option value="week">Group by Week</option>
-              <option value="month">Group by Month</option>
-              <option value="year">Group by Year</option>
-            </select>
-          </div>
         </motion.div>
 
         {/* Check-in Chart */}
@@ -514,7 +499,7 @@ function AdminDashboard() {
                   stroke="rgba(255,255,255,0.5)"
                   tickFormatter={(date) => {
                     const d = new Date(date);
-                    return groupBy === 'month' ? format(d, 'MMM yyyy') : format(d, 'MMM d');
+                    return autoGroup === 'month' ? format(d, 'MMM yyyy') : format(d, 'MMM d');
                   }}
                   minTickGap={10}
                 />
@@ -527,7 +512,7 @@ function AdminDashboard() {
                   }}
                   labelFormatter={(date) => {
                     const d = new Date(date);
-                    return groupBy === 'month' ? format(d, 'MMMM yyyy') : format(d, 'PPP');
+                    return autoGroup === 'month' ? format(d, 'MMMM yyyy') : format(d, 'PPP');
                   }}
                   formatter={(value: any) => [`${value} check-in${value === 1 ? '' : 's'}`, '']}
                 />
