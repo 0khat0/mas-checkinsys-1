@@ -198,40 +198,40 @@ function AdminDashboard() {
     return `${tzDate.getFullYear()}-${pad(tzDate.getMonth() + 1)}-${pad(tzDate.getDate())}T00:00:00${sign}${hours}:${mins}`;
   }
 
-  // --- Generate full Toronto-local ISO date range for zero-filling ---
-  function generateTorontoISORange(start: Date, end: Date, group: 'day' | 'month') {
+  // --- Generate full Toronto-local date range for zero-filling (YYYY-MM-DD) ---
+  function generateTorontoDateRange(start: Date, end: Date, group: 'day' | 'month') {
     const range = [];
     let current = new Date(start);
     if (group === 'month') {
       current = new Date(current.getFullYear(), current.getMonth(), 1);
       end = new Date(end.getFullYear(), end.getMonth(), 1);
       while (current <= end) {
-        range.push(toTorontoISO(current));
+        range.push(`${current.getFullYear()}-${(current.getMonth() + 1).toString().padStart(2, '0')}-${'01'}`);
         current = addMonths(current, 1);
       }
     } else {
       while (current <= end) {
-        range.push(toTorontoISO(current));
+        range.push(`${current.getFullYear()}-${(current.getMonth() + 1).toString().padStart(2, '0')}-${current.getDate().toString().padStart(2, '0')}`);
         current = addDays(current, 1);
       }
     }
     return range;
   }
 
-  // --- Build processed data with zero-fill using backend's ISO date strings ---
+  // --- Build processed data with zero-fill using date part only ---
   let processedCheckinData: { date: string, count: number }[] = [];
   let autoGroup: 'day' | 'month' = 'day';
   if (dateRange === 'year') autoGroup = 'month';
   if (dateRange === 'week' || dateRange === 'month') autoGroup = 'day';
   const countMap = new Map<string, number>();
   checkinData.forEach(d => {
-    // Use backend's ISO string as key
-    countMap.set(d.date, (countMap.get(d.date) || 0) + (d.count || 0));
+    const dateKey = d.date.slice(0, 10); // YYYY-MM-DD
+    countMap.set(dateKey, (countMap.get(dateKey) || 0) + (d.count || 0));
   });
-  const allDates = generateTorontoISORange(startDate, endDate, autoGroup);
-  processedCheckinData = allDates.map(date => ({
-    date,
-    count: countMap.get(date) || 0
+  const allDates = generateTorontoDateRange(startDate, endDate, autoGroup);
+  processedCheckinData = allDates.map(dateKey => ({
+    date: toTorontoISO(new Date(dateKey)), // for X axis display
+    count: countMap.get(dateKey) || 0
   }));
 
   if (!isAuthenticated) {
