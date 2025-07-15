@@ -183,48 +183,47 @@ function AdminDashboard() {
     }
   };
 
-  // --- NEW: Generate full date range and align to Toronto time ---
-  function generateDateRange(start: Date, end: Date, group: 'day' | 'week' | 'month' | 'year') {
+  // --- NEW: Generate full date range using backend's Toronto-local ISO date strings ---
+  function generateDateRangeISO(start: Date, end: Date, group: 'day' | 'month') {
     const range = [];
     let current = new Date(start);
-    if (group === 'day') {
-      while (current <= end) {
-        range.push(format(current, 'yyyy-MM-dd'));
+    while (current <= end) {
+      if (group === 'month') {
+        // Set to first of month, preserve timezone offset
+        const iso = new Date(current.getFullYear(), current.getMonth(), 1).toISOString().slice(0, 10);
+        // Use Toronto offset
+        const toronto = new Date(Date.UTC(current.getFullYear(), current.getMonth(), 1));
+        range.push(toronto.toISOString().split('T')[0]);
+        current = addMonths(current, 1);
+      } else {
+        // Use Toronto-local date string (YYYY-MM-DD) and preserve offset
+        const toronto = new Date(current.getTime());
+        range.push(toronto.toISOString().split('T')[0]);
         current = addDays(current, 1);
       }
-    } else if (group === 'month') {
-      while (current <= end) {
-        range.push(format(current, 'yyyy-MM'));
-        current = addMonths(current, 1);
-      }
     }
-    // Add more groupings if needed
     return range;
   }
 
-  // --- NEW: Map check-ins to Toronto-local date string ---
-  function toTorontoDateString(dateStr: string, group: 'day' | 'week' | 'month' | 'year') {
-    const date = new Date(dateStr);
-    if (group === 'month') {
-      return format(date, 'yyyy-MM');
-    }
-    // Default to day
-    return format(date, 'yyyy-MM-dd');
-  }
-
-  // --- NEW: Build processed data with zero-fill ---
+  // --- NEW: Build processed data with zero-fill using backend's ISO date strings ---
   let processedCheckinData: { date: string, count: number }[] = [];
   if (groupBy === 'day' || groupBy === 'month') {
-    const allDates = generateDateRange(startDate, endDate, groupBy);
+    // Use backend's date string as key
     const countMap = new Map<string, number>();
     checkinData.forEach(d => {
-      const key = toTorontoDateString(d.date, groupBy);
+      // Use only the date part (YYYY-MM-DD) for grouping
+      const key = d.date.slice(0, 10);
       countMap.set(key, (countMap.get(key) || 0) + (d.count || 0));
     });
-    processedCheckinData = allDates.map(date => ({
-      date: groupBy === 'month' ? date + '-01T00:00:00.000Z' : date + 'T00:00:00.000Z',
-      count: countMap.get(date) || 0
-    }));
+    const allDates = generateDateRangeISO(startDate, endDate, groupBy);
+    processedCheckinData = allDates.map(date => {
+      // Find the original backend ISO string for this date (with offset)
+      const backendEntry = checkinData.find(d => d.date.slice(0, 10) === date);
+      return {
+        date: backendEntry ? backendEntry.date : date + 'T00:00:00-04:00', // fallback to Toronto offset
+        count: countMap.get(date) || 0
+      };
+    });
   }
 
   if (!isAuthenticated) {
@@ -515,7 +514,10 @@ function AdminDashboard() {
                 <XAxis 
                   dataKey="date" 
                   stroke="rgba(255,255,255,0.5)"
-                  tickFormatter={(date) => groupBy === 'month' ? format(new Date(date), 'MMM yyyy') : format(new Date(date), 'MMM d')}
+                  tickFormatter={(date) => {
+                    const d = new Date(date);
+                    return groupBy === 'month' ? format(d, 'MMM yyyy') : format(d, 'MMM d');
+                  }}
                   minTickGap={10}
                 />
                 <YAxis stroke="rgba(255,255,255,0.5)" allowDecimals={false} />
@@ -525,7 +527,10 @@ function AdminDashboard() {
                     border: '1px solid rgba(255,255,255,0.2)',
                     borderRadius: '8px',
                   }}
-                  labelFormatter={(date) => groupBy === 'month' ? format(new Date(date), 'MMMM yyyy') : format(new Date(date), 'PPP')}
+                  labelFormatter={(date) => {
+                    const d = new Date(date);
+                    return groupBy === 'month' ? format(d, 'MMMM yyyy') : format(d, 'PPP');
+                  }}
                   formatter={(value: any) => [`${value} check-in${value === 1 ? '' : 's'}`, '']}
                 />
                 <Legend />
