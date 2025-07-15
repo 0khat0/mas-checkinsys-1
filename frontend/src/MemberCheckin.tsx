@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import logo from "./assets/mas-logo.png";
 import { isValidUUID, getApiUrl, clearMemberData, setMemberId, getTorontoTime } from "./utils";
-import { useNavigate } from "react-router-dom";
 
 function getDailyMuayThaiMessage() {
   const messages = [
@@ -40,7 +39,6 @@ function MemberCheckin() {
   const [checkinByName, setCheckinByName] = useState(false); // NEW: toggle for check-in by name
   // Add state for multiple names
   const [familyNames, setFamilyNames] = useState<string[]>([]);
-  const navigate = useNavigate();
 
   // Helper to handle name changes
   const handleFamilyNameChange = (idx: number, value: string) => {
