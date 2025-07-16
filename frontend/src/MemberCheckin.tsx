@@ -220,6 +220,20 @@ function MemberCheckin() {
             </div>
           </motion.div>
         )}
+        {/* Green check-in message for single users after check-in */}
+        {status === "success" && (familyMembers.length <= 1 || !familyMembers.length) && (
+          <motion.div
+            className="w-full max-w-md mb-2"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="glass-card bg-gradient-to-r from-green-800 via-green-700 to-green-600 p-6 text-center">
+              <p className="text-xl font-semibold text-white">✓ {message || "Check-in successful! Welcome back."}</p>
+              <p className="mt-2 text-lg text-white/90 font-medium">{getDailyMuayThaiMessage()}</p>
+            </div>
+          </motion.div>
+        )}
         {/* Only show forms/options if not all checked in (family) or not success (individual) */}
         {!(status === "register" && familyMembers.length > 1 && notCheckedInMembers.length === 0 && !checkinStatusLoading) && status !== "success" && (
           <>
