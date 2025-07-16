@@ -208,11 +208,10 @@ function MemberCheckin() {
             <div className="h-2 rounded-full animated-accent-bar shadow-md mt-2 w-full" />
           </div>
         </motion.div>
-        {/* Green check-in message and forms, etc. remain unchanged */}
-        {/* Green check-in message for all checked in (family) */}
+        {/* SUCCESS STATE: All family members checked in - ONLY show green message */}
         {status === "register" && familyMembers.length > 1 && notCheckedInMembers.length === 0 && !checkinStatusLoading && (
           <motion.div
-            className="w-full max-w-md mb-2"
+            className="w-full max-w-md"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
@@ -223,10 +222,11 @@ function MemberCheckin() {
             </div>
           </motion.div>
         )}
-        {/* Green check-in message for single users after check-in */}
+        
+        {/* SUCCESS STATE: Single user after check-in - ONLY show green message */}
         {status === "success" && (familyMembers.length <= 1 || !familyMembers.length) && (
           <motion.div
-            className="w-full max-w-md mb-2"
+            className="w-full max-w-md"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
@@ -237,8 +237,79 @@ function MemberCheckin() {
             </div>
           </motion.div>
         )}
-        {/* Only show forms/options if not a recognized family with unchecked members */}
-        {!(status === "register" && familyMembers.length > 1 && notCheckedInMembers.length > 0 && !checkinStatusLoading) && status !== "success" && (
+
+        {/* FAMILY SELECTION STATE: Some family members not checked in - ONLY show family selection */}
+        {status === "register" && familyMembers.length > 1 && notCheckedInMembers.length > 0 && !checkinStatusLoading && (
+          <motion.div
+            className="w-full max-w-md space-y-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="glass-card space-y-6 p-6">
+              <div className="text-center">
+                <h3 className="text-xl font-semibold text-white mb-2">👨‍👩‍👧‍👦 Family Check-in</h3>
+                <p className="text-white/70 mb-4">Select which family members are here today:</p>
+              </div>
+              <div className="space-y-3">
+                {notCheckedInMembers.map((memberName) => (
+                  <label key={memberName} className="flex items-center space-x-3 cursor-pointer p-3 rounded-lg hover:bg-white/5 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={selectedFamilyMembers.includes(memberName)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedFamilyMembers(prev => [...prev, memberName]);
+                        } else {
+                          setSelectedFamilyMembers(prev => prev.filter(name => name !== memberName));
+                        }
+                      }}
+                      className="w-5 h-5 text-red-600 bg-gray-700 border-gray-600 rounded focus:ring-red-500 focus:ring-2"
+                    />
+                    <span className="text-white font-medium">{memberName}</span>
+                  </label>
+                ))}
+              </div>
+              <button
+                onClick={async () => {
+                  try {
+                    const API_URL = getApiUrl();
+                    const res = await fetch(`${API_URL}/family/checkin`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        email: memberEmail,
+                        member_names: selectedFamilyMembers,
+                      }),
+                    });
+
+                    if (res.ok) {
+                      const data = await res.json();
+                      // Refresh check-in status after check-in
+                      await fetchFamilyCheckinStatus(memberEmail!);
+                      setSelectedFamilyMembers([]);
+                    } else {
+                      const err = await res.json();
+                      setStatus("error");
+                      setMessage(err.detail || "Family check-in failed.");
+                    }
+                  } catch {
+                    setStatus("error");
+                    setMessage("Network error. Please try again.");
+                  }
+                }}
+                disabled={selectedFamilyMembers.length === 0}
+                className="w-full bg-gradient-to-r from-red-700 via-red-500 to-pink-500 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-red-700 transition-all duration-300 shadow-lg hover:shadow-black/30 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Check In Selected Members ({selectedFamilyMembers.length})
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* NEW USER STATE: No recognition - show registration form + returning user button */}
+        {status === "register" && familyMembers.length === 0 && (
           <>
             <motion.div
               className="w-full max-w-md mb-2"
@@ -254,442 +325,335 @@ function MemberCheckin() {
                 {checkinByName ? "Back to Register" : "Already Registered? Tap Here To Check In!"}
               </button>
             </motion.div>
-            {/* Status Messages */}
-            <AnimatePresence mode="wait">
-              {(status === "checking-in" || status === "error") && (
-                <motion.div 
-                  className="w-full max-w-md space-y-4"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  {status === "checking-in" && (
-                    <motion.div 
-                      className="glass-card flex flex-col items-center p-6"
-                      animate={{ scale: [1, 1.02, 1] }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                    >
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-red-500 mb-4"></div>
-                      <p className="text-xl font-medium text-white/90">Checking you in...</p>
-                    </motion.div>
-                  )}
-                  {status === "error" && (
-                    <motion.div 
-                      className="glass-card bg-red-500/10 p-6 text-center"
-                      initial={{ scale: 0.9 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                    >
-                      <p className="text-xl font-semibold text-red-400">✗ {message}</p>
-                    </motion.div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-            {/* Family Member Selection for Returning Families (exclusive UI) */}
-            {status === "register" && familyMembers.length > 1 && notCheckedInMembers.length > 0 && !checkinStatusLoading && (
-              <motion.div
+
+            {/* Show registration form or check-in by name form */}
+            {!checkinByName ? (
+              <motion.form
                 className="w-full max-w-md space-y-6"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
-              >
-                <div className="glass-card space-y-6 p-6">
-                  <div className="text-center">
-                    <h3 className="text-xl font-semibold text-white mb-2">👨‍👩‍👧‍👦 Family Check-in</h3>
-                    <p className="text-white/70 mb-4">Select which family members are here today (not yet checked in):</p>
-                  </div>
-                  <div className="space-y-3">
-                    {notCheckedInMembers.map((memberName) => (
-                      <label key={memberName} className="flex items-center space-x-3 cursor-pointer p-3 rounded-lg hover:bg-white/5 transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={selectedFamilyMembers.includes(memberName)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedFamilyMembers(prev => [...prev, memberName]);
-                            } else {
-                              setSelectedFamilyMembers(prev => prev.filter(name => name !== memberName));
-                            }
-                          }}
-                          className="w-5 h-5 text-red-600 bg-gray-700 border-gray-600 rounded focus:ring-red-500 focus:ring-2"
-                        />
-                        <span className="text-white font-medium">{memberName}</span>
-                      </label>
-                    ))}
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedFamilyMembers(notCheckedInMembers); // Select all
-                      }}
-                      className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
-                    >
-                      Select All
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedFamilyMembers([]); // Clear all
-                      }}
-                      className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
-                    >
-                      Clear All
-                    </button>
-                  </div>
-                  <button
-                    onClick={async () => {
-                      if (selectedFamilyMembers.length === 0) {
-                        setMessage("Please select at least one family member.");
-                        return;
-                      }
-                      setStatus("loading");
-                      setMessage("");
-                      try {
-                        const API_URL = getApiUrl();
-                        const checkinData = {
-                          email: memberEmail!,
-                          member_names: selectedFamilyMembers
-                        };
-                        const res = await fetch(`${API_URL}/family/checkin`, {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify(checkinData),
-                        });
-                        if (res.ok) {
-                          const data = await res.json();
-                          // Refresh check-in status after check-in
-                          await fetchFamilyCheckinStatus(memberEmail!);
-                          setSelectedFamilyMembers([]);
-                          // If all are now checked in, show green message
-                          if (notCheckedInMembers.length === selectedFamilyMembers.length || notCheckedInMembers.length === 0) {
-                            setStatus("register");
-                            setMessage("All family members have checked in for this period!\n" + (data.message || ""));
-                          } else {
-                            // If there are still unchecked members, keep showing selection
-                            setStatus("register");
-                            setMessage(data.message);
-                          }
-                        } else {
-                          const err = await res.json();
-                          setStatus("error");
-                          setMessage(err.detail || "Family check-in failed.");
-                        }
-                      } catch {
-                        setStatus("error");
-                        setMessage("Network error. Please try again.");
-                      }
-                    }}
-                    disabled={selectedFamilyMembers.length === 0}
-                    className="w-full bg-gradient-to-r from-red-700 via-red-500 to-pink-500 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-red-700 transition-all duration-300 shadow-lg hover:shadow-black/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Check In Selected Members ({selectedFamilyMembers.length})
-                  </button>
-                </div>
-              </motion.div>
-            )}
-            {/* Registration or Check-In by Name Form */}
-            <AnimatePresence>
-              {status === "register" && !checkinByName && (
-                <motion.form
-                  className="w-full max-w-md space-y-6"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    // Validate all names
-                    const allNames = [formName, ...familyNames];
-                    for (const name of allNames) {
-                      if (!/^\s*\S+\s+\S+/.test(name.trim())) {
-                        setMessage("Please enter a full name (first and last) for each member.");
-                        return;
-                      }
-                    }
-                    if (!/^\S+@\S+\.\S+$/.test(formEmail.trim())) {
-                      setMessage("Please enter a valid email address.");
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  // Validate all names
+                  const allNames = [formName, ...familyNames];
+                  for (const name of allNames) {
+                    if (!/^\s*\S+\s+\S+/.test(name.trim())) {
+                      setMessage("Please enter a full name (first and last) for each member.");
                       return;
                     }
-                    setStatus("loading");
-                    setMessage("");
-                    const API_URL = getApiUrl();
-                    
-                    if (isFamily && allNames.length > 1) {
-                      // Use family registration endpoint
+                  }
+                  if (!/^\S+@\S+\.\S+$/.test(formEmail.trim())) {
+                    setMessage("Please enter a valid email address.");
+                    return;
+                  }
+                  setStatus("loading");
+                  setMessage("");
+                  const API_URL = getApiUrl();
+                  
+                  if (isFamily && allNames.length > 1) {
+                    // Use family registration endpoint
+                    try {
+                      const familyData = {
+                        email: formEmail,
+                        members: allNames.map(name => ({ name: name.trim() }))
+                      };
+                      
+                      const res = await fetch(`${API_URL}/family/register`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(familyData),
+                      });
+                      
+                      if (res.ok) {
+                        const data = await res.json();
+                        // Store family info in localStorage
+                        localStorage.setItem("member_email", formEmail);
+                        localStorage.setItem("family_members", JSON.stringify(allNames));
+                        setMemberEmail(formEmail);
+                        // NEW: Save the first member's id as member_id for profile access
+                        if (data.member_ids && Array.isArray(data.member_ids) && data.member_ids.length > 0) {
+                          localStorage.setItem("member_id", data.member_ids[0]);
+                        }
+                        setStatus("success");
+                        setMessage(data.message);
+                      } else {
+                        const err = await res.json();
+                        setStatus("error");
+                        setMessage(err.detail || "Family registration failed.");
+                      }
+                    } catch {
+                      setStatus("error");
+                      setMessage("Network error. Please try again.");
+                    }
+                  } else {
+                    // Use single member registration (existing logic)
+                    let results: string[] = [];
+                    for (const [idx, name] of allNames.entries()) {
                       try {
-                        const familyData = {
-                          email: formEmail,
-                          members: allNames.map(name => ({ name: name.trim() }))
-                        };
-                        
-                        const res = await fetch(`${API_URL}/family/register`, {
+                        const res = await fetch(`${API_URL}/member`, {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify(familyData),
+                          body: JSON.stringify({ email: formEmail, name }),
                         });
-                        
                         if (res.ok) {
                           const data = await res.json();
-                          // Store family info in localStorage
-                          localStorage.setItem("member_email", formEmail);
-                          localStorage.setItem("family_members", JSON.stringify(allNames));
-                          setMemberEmail(formEmail);
-                          // NEW: Save the first member's id as member_id for profile access
-                          if (data.member_ids && Array.isArray(data.member_ids) && data.member_ids.length > 0) {
-                            localStorage.setItem("member_id", data.member_ids[0]);
+                          if (idx === 0) {
+                            localStorage.setItem("member_email", formEmail);
+                            setMemberEmail(formEmail);
+                            if (data.id && isValidUUID(data.id)) setMemberId(data.id);
                           }
-                          setStatus("success");
-                          setMessage(data.message);
-                        } else {
-                          const err = await res.json();
-                          setStatus("error");
-                          setMessage(err.detail || "Family registration failed.");
-                        }
-                      } catch {
-                        setStatus("error");
-                        setMessage("Network error. Please try again.");
-                      }
-                    } else {
-                      // Use single member registration (existing logic)
-                      let results: string[] = [];
-                      for (const [idx, name] of allNames.entries()) {
-                        try {
-                          const res = await fetch(`${API_URL}/member`, {
+                          // Check in
+                          const checkinRes = await fetch(`${API_URL}/checkin`, {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ email: formEmail, name }),
+                            body: JSON.stringify({ email: formEmail }),
                           });
-                          if (res.ok) {
-                            const data = await res.json();
-                            if (idx === 0) {
-                              localStorage.setItem("member_email", formEmail);
-                              setMemberEmail(formEmail);
-                              if (data.id && isValidUUID(data.id)) setMemberId(data.id);
-                            }
-                            // Check in
-                            const checkinRes = await fetch(`${API_URL}/checkin`, {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ email: formEmail }),
-                            });
-                            if (checkinRes.ok) {
-                              results.push(`${name}: Check-in confirmed`);
-                            } else {
-                              const err = await checkinRes.json();
-                              results.push(`${name}: Check-in failed (${err.detail || "error"})`);
-                            }
+                          if (checkinRes.ok) {
+                            results.push(`${name}: Check-in confirmed`);
                           } else {
-                            const err = await res.json();
-                            results.push(`${name}: Registration failed (${err.detail || "error"})`);
-                          }
-                        } catch {
-                          results.push(`${name}: Network error`);
-                        }
-                      }
-                      setStatus("success");
-                      setMessage(results.join("\n"));
-                    }
-                  }}
-                >
-                  <div className="glass-card space-y-6 p-6">
-                    {/* Family Toggle */}
-                    <motion.div className="flex justify-center mb-4">
-                      <button
-                        type="button"
-                        onClick={() => setIsFamily(!isFamily)}
-                        className={`px-6 py-2 rounded-full font-semibold transition-all duration-200 border-2 ${
-                          isFamily 
-                            ? 'bg-gray-800 text-white/70 border-gray-700 hover:bg-gray-700' 
-                            : 'bg-gradient-to-r from-red-600 to-red-700 text-white border-red-600'
-                        }`}
-                      >
-                        {isFamily ? 'Go Back' : '👨‍👩‍👧‍👦 Family?'}
-                      </button>
-                    </motion.div>
-                    
-                    <motion.div className="space-y-2" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
-                      <label className="block text-lg font-medium text-white/90">Full Name</label>
-                      <input className="input-field" placeholder="Enter your full name" type="text" value={formName} onChange={e => setFormName(e.target.value)} required />
-                    </motion.div>
-                    
-                    {/* Family member fields - only show if family mode is active */}
-                    {isFamily && familyNames.map((name, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <input className="input-field flex-1" placeholder="Enter family member's full name" type="text" value={name} onChange={e => handleFamilyNameChange(idx, e.target.value)} required />
-                        <button type="button" className="text-red-400 font-bold px-2" onClick={() => removeFamilyMember(idx)} aria-label="Remove family member">&times;</button>
-                      </div>
-                    ))}
-                    
-                    {/* Family control buttons */}
-                    {isFamily && (
-                      <div className="flex gap-2">
-                        <button 
-                          type="button" 
-                          className="flex items-center gap-1 px-3 py-2 border border-gray-700 rounded-md text-sm text-white bg-transparent hover:bg-gray-800 transition-all flex-1 justify-center" 
-                          onClick={addFamilyMember}
-                        >
-                          <span className="text-lg font-bold">+</span> <span>Add Member</span>
-                        </button>
-                      </div>
-                    )}
-                    
-                    <motion.div 
-                      className="space-y-2"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.2 }}
-                    >
-                      <label className="block text-lg font-medium text-white/90">Email Address</label>
-                      <input
-                        className="input-field"
-                        placeholder="Enter your email"
-                        type="email"
-                        value={formEmail}
-                        onChange={(e) => setFormEmail(e.target.value)}
-                        required
-                      />
-                    </motion.div>
-                    <motion.button
-                      className="w-full bg-gradient-to-r from-red-700 via-red-500 to-pink-500 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-red-700 transition-all duration-300 shadow-lg hover:shadow-black/30"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      type="submit"
-                    >
-                      {isFamily ? 'Register Family & Check In' : 'Register & Check In'}
-                    </motion.button>
-                  </div>
-                </motion.form>
-              )}
-              {status === "register" && checkinByName && (
-                <motion.form
-                  className="w-full max-w-md space-y-6"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    // Validate all names
-                    const allNames = [formName, ...familyNames];
-                    for (const name of allNames) {
-                      if (!/^\s*\S+\s+\S+/.test(name.trim())) {
-                        setMessage("Please enter a full name (first and last) for each member.");
-                        return;
-                      }
-                    }
-                    setStatus("loading");
-                    setMessage("");
-                    const API_URL = getApiUrl();
-                    let results: string[] = [];
-                    let anyNotFound = false;
-                    let firstMemberId = null;
-                    let firstMemberEmail = null;
-                    let familyMemberNames = [];
-                    for (const name of allNames) {
-                      try {
-                        const res = await fetch(`${API_URL}/checkin/by-name`, {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ name }),
-                        });
-                        if (res.ok) {
-                          const data = await res.json();
-                          results.push(`${name}: Check-in confirmed`);
-                          // Save the first member's id and email for profile access
-                          if (!firstMemberId && data.member_id && isValidUUID(data.member_id)) {
-                            firstMemberId = data.member_id;
-                          }
-                          if (!firstMemberEmail && data.email) {
-                            firstMemberEmail = data.email;
+                            const err = await checkinRes.json();
+                            results.push(`${name}: Check-in failed (${err.detail || "error"})`);
                           }
                         } else {
-                          const data = await res.json();
-                          if (data.detail === "Member not found") {
-                            anyNotFound = true;
-                            results.push(`${name}: Not found.`);
-                          } else {
-                            results.push(`${name}: Check-in failed (${data.detail || "error"})`);
-                          }
+                          const err = await res.json();
+                          results.push(`${name}: Registration failed (${err.detail || "error"})`);
                         }
                       } catch {
                         results.push(`${name}: Network error`);
                       }
                     }
-                    // After all check-ins, check if this is a family account
-                    if (firstMemberEmail) {
-                      try {
-                        const familyRes = await fetch(`${API_URL}/family/members/${encodeURIComponent(firstMemberEmail)}`);
-                        if (familyRes.ok) {
-                          const familyData = await familyRes.json();
-                          if (Array.isArray(familyData) && familyData.length > 1) {
-                            familyMemberNames = familyData.map((m) => m.name);
-                            // Set member_id to the first member's id (primary)
-                            if (familyData[0]?.id && isValidUUID(familyData[0].id)) {
-                              firstMemberId = familyData[0].id;
-                            }
-                            // Update localStorage.family_members
-                            localStorage.setItem("family_members", JSON.stringify(familyMemberNames));
-                          } else {
-                            // Not a family, clear family_members
-                            localStorage.removeItem("family_members");
-                          }
-                        }
-                      } catch {
-                        // Ignore errors, fallback to single member
-                        localStorage.removeItem("family_members");
-                      }
-                    }
-                    // Save to localStorage if found
-                    if (firstMemberId && firstMemberEmail) {
-                      localStorage.setItem("member_id", firstMemberId);
-                      localStorage.setItem("member_email", firstMemberEmail);
-                      setMemberEmail(firstMemberEmail);
-                    }
-                    if (anyNotFound) {
-                      setStatus("register"); // keep form open
-                      setFormName("");
-                      setFamilyNames([]);
-                      setMessage("Name not found. Please register or re-enter your name.");
-                    } else {
-                      setStatus("success");
-                      setMessage(results.join("\n"));
-                    }
-                  }}
-                >
-                  <div className="glass-card space-y-6 p-6">
-                    {message && (<div className="text-red-400 text-center font-semibold mb-2">{message}</div>)}
-                    <motion.div className="space-y-2" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
-                      <label className="block text-lg font-medium text-white/90">Full Name</label>
-                      <input className="input-field" placeholder="Enter your full name" type="text" value={formName} onChange={e => setFormName(e.target.value)} required />
-                    </motion.div>
-                    {/* Family member fields */}
-                    {familyNames.map((name, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <input className="input-field flex-1" placeholder="Enter family member's full name" type="text" value={name} onChange={e => handleFamilyNameChange(idx, e.target.value)} required />
-                        <button type="button" className="text-red-400 font-bold px-2" onClick={() => removeFamilyMember(idx)} aria-label="Remove family member">&times;</button>
-                      </div>
-                    ))}
-                    <button type="button" className="flex items-center gap-1 px-3 py-1 border border-gray-700 rounded-md text-sm text-white bg-transparent hover:bg-gray-800 transition-all" onClick={addFamilyMember}>
-                      <span className="text-lg font-bold">+</span> <span>Add Family Member</span>
-                    </button>
-                    <motion.button
-                      className="w-full bg-gradient-to-r from-red-700 via-red-500 to-pink-500 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-red-700 transition-all duration-300 shadow-lg hover:shadow-black/30"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      type="submit"
+                    setStatus("success");
+                    setMessage(results.join("\n"));
+                  }
+                }}
+              >
+                <div className="glass-card space-y-6 p-6">
+                  {/* Family Toggle */}
+                  <motion.div className="flex justify-center mb-4">
+                    <button
+                      type="button"
+                      onClick={() => setIsFamily(!isFamily)}
+                      className={`px-6 py-2 rounded-full font-semibold transition-all duration-200 border-2 ${
+                        isFamily 
+                          ? 'bg-gray-800 text-white/70 border-gray-700 hover:bg-gray-700' 
+                          : 'bg-gradient-to-r from-red-600 to-red-700 text-white border-red-600'
+                      }`}
                     >
-                      Check In
+                      {isFamily ? 'Go Back' : '👨‍👩‍👧‍👦 Family?'}
+                    </button>
+                  </motion.div>
+                  
+                  <motion.div className="space-y-2" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
+                    <label className="block text-lg font-medium text-white/90">Full Name</label>
+                    <input className="input-field" placeholder="Enter your full name" type="text" value={formName} onChange={e => setFormName(e.target.value)} required />
+                  </motion.div>
+                  
+                  {/* Family member fields - only show if family mode is active */}
+                  {isFamily && familyNames.map((name, idx) => (
+                    <motion.div key={idx} className="flex items-center gap-2" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + idx * 0.1 }}>
+                      <input className="input-field flex-1" placeholder="Enter family member's full name" type="text" value={name} onChange={e => handleFamilyNameChange(idx, e.target.value)} required />
+                      <button type="button" className="text-red-400 font-bold px-2" onClick={() => removeFamilyMember(idx)} aria-label="Remove family member">&times;</button>
+                    </motion.div>
+                  ))}
+                  
+                  {isFamily && (
+                    <motion.button type="button" className="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors duration-200" onClick={addFamilyMember} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
+                      + Add Family Member
                     </motion.button>
-                  </div>
-                </motion.form>
-              )}
-            </AnimatePresence>
+                  )}
+                  
+                  <motion.div 
+                    className="space-y-2"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    <label className="block text-lg font-medium text-white/90">Email Address</label>
+                    <input
+                      className="input-field"
+                      placeholder="Enter your email"
+                      type="email"
+                      value={formEmail}
+                      onChange={(e) => setFormEmail(e.target.value)}
+                      required
+                    />
+                  </motion.div>
+                  <motion.button
+                    className="w-full bg-gradient-to-r from-red-700 via-red-500 to-pink-500 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-red-700 transition-all duration-300 shadow-lg hover:shadow-black/30"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="submit"
+                  >
+                    {isFamily ? 'Register Family & Check In' : 'Register & Check In'}
+                  </motion.button>
+                </div>
+              </motion.form>
+            ) : (
+              <motion.form
+                className="w-full max-w-md space-y-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  // Validate all names
+                  const allNames = [formName, ...familyNames];
+                  for (const name of allNames) {
+                    if (!/^\s*\S+\s+\S+/.test(name.trim())) {
+                      setMessage("Please enter a full name (first and last) for each member.");
+                      return;
+                    }
+                  }
+                  setStatus("loading");
+                  setMessage("");
+                  const API_URL = getApiUrl();
+                  let results: string[] = [];
+                  let anyNotFound = false;
+                  let firstMemberId = null;
+                  let firstMemberEmail = null;
+                  let familyMemberNames = [];
+
+                  for (const [idx, name] of allNames.entries()) {
+                    try {
+                      const res = await fetch(`${API_URL}/checkin`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ name }),
+                      });
+                      if (res.ok) {
+                        const data = await res.json();
+                        results.push(`${name}: Check-in confirmed`);
+                        if (idx === 0) {
+                          firstMemberId = data.member_id;
+                          firstMemberEmail = data.email;
+                        }
+                      } else {
+                        results.push(`${name}: Not found`);
+                        anyNotFound = true;
+                      }
+                    } catch {
+                      results.push(`${name}: Network error`);
+                    }
+                  }
+
+                  // After all check-ins, check if this is a family account
+                  if (firstMemberEmail) {
+                    try {
+                      const familyRes = await fetch(`${API_URL}/family/members/${encodeURIComponent(firstMemberEmail)}`);
+                      if (familyRes.ok) {
+                        const familyData = await familyRes.json();
+                        if (Array.isArray(familyData) && familyData.length > 1) {
+                          familyMemberNames = familyData.map((m) => m.name);
+                          // Set member_id to the first member's id (primary)
+                          if (familyData[0]?.id && isValidUUID(familyData[0].id)) {
+                            firstMemberId = familyData[0].id;
+                          }
+                          // Update localStorage.family_members
+                          localStorage.setItem("family_members", JSON.stringify(familyMemberNames));
+                        } else {
+                          // Not a family, clear family_members
+                          localStorage.removeItem("family_members");
+                        }
+                      }
+                    } catch {
+                      // Ignore errors, fallback to single member
+                      localStorage.removeItem("family_members");
+                    }
+                  }
+                  // Save to localStorage if found
+                  if (firstMemberId && firstMemberEmail) {
+                    localStorage.setItem("member_id", firstMemberId);
+                    localStorage.setItem("member_email", firstMemberEmail);
+                    setMemberEmail(firstMemberEmail);
+                  }
+                  if (anyNotFound) {
+                    setStatus("register"); // keep form open
+                    setFormName("");
+                    setFamilyNames([]);
+                    setMessage("Name not found. Please register or re-enter your name.");
+                  } else {
+                    setStatus("success");
+                    setMessage(results.join("\n"));
+                  }
+                }}
+              >
+                <div className="glass-card space-y-6 p-6">
+                  {message && (<div className="text-red-400 text-center font-semibold mb-2">{message}</div>)}
+                  <motion.div className="space-y-2" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
+                    <label className="block text-lg font-medium text-white/90">Full Name</label>
+                    <input className="input-field" placeholder="Enter your full name" type="text" value={formName} onChange={e => setFormName(e.target.value)} required />
+                  </motion.div>
+                  {/* Family member fields */}
+                  {familyNames.map((name, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <input className="input-field flex-1" placeholder="Enter family member's full name" type="text" value={name} onChange={e => handleFamilyNameChange(idx, e.target.value)} required />
+                      <button type="button" className="text-red-400 font-bold px-2" onClick={() => removeFamilyMember(idx)} aria-label="Remove family member">&times;</button>
+                    </div>
+                  ))}
+                  <button type="button" className="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors duration-200" onClick={addFamilyMember}>
+                    + Add Family Member
+                  </button>
+                  <motion.button
+                    className="w-full bg-gradient-to-r from-red-700 via-red-500 to-pink-500 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-red-700 transition-all duration-300 shadow-lg hover:shadow-black/30"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="submit"
+                  >
+                    Check In
+                  </motion.button>
+                </div>
+              </motion.form>
+            )}
           </>
         )}
+
+        {/* Loading and Error States */}
+        <AnimatePresence>
+          {(status === "checking-in" || status === "loading" || status === "error") && (
+            <motion.div 
+              className="w-full max-w-md space-y-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              {(status === "checking-in" || status === "loading") && (
+                <motion.div 
+                  className="glass-card flex flex-col items-center p-6"
+                  animate={{ scale: [1, 1.02, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-red-500 mb-4"></div>
+                  <p className="text-xl font-medium text-white/90">
+                    {status === "checking-in" ? "Checking you in..." : "Processing..."}
+                  </p>
+                </motion.div>
+              )}
+              {status === "error" && (
+                <motion.div 
+                  className="glass-card bg-red-500/10 p-6 text-center"
+                  initial={{ scale: 0.9 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                >
+                  <p className="text-xl font-semibold text-red-400">✗ {message}</p>
+                  <button
+                    onClick={() => {
+                      setStatus("register");
+                      setMessage("");
+                    }}
+                    className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                  >
+                    Try Again
+                  </button>
+                </motion.div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
         {/* Member Stats (moved to Profile page) */}
       </div>
     </div>
