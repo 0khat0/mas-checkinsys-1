@@ -285,7 +285,7 @@ function MemberCheckin() {
                     });
 
                     if (res.ok) {
-                      const data = await res.json();
+                      await res.json(); // Remove unused variable
                       // Refresh check-in status after check-in
                       await fetchFamilyCheckinStatus(memberEmail!);
                       setSelectedFamilyMembers([]);
