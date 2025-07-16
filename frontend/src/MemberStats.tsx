@@ -143,6 +143,22 @@ function MemberStats({ memberId }: Props) {
     fetchAndSyncFamilyMembers();
   }, []);
 
+  // After fetching family members, handle the case where there are no members left
+  useEffect(() => {
+    if (familyMembers.length === 0) {
+      // Clear localStorage and prompt user to check in again
+      localStorage.removeItem('member_id');
+      localStorage.removeItem('family_members');
+      localStorage.removeItem('member_email');
+      setError('No members found. Please check in or register again.');
+    } else if (!selectedMemberId || !familyMembers.find(m => m.id === selectedMemberId)) {
+      // If selectedMemberId is invalid, select the first available member
+      setSelectedMemberId(familyMembers[0].id);
+      setEditName(familyMembers[0].name);
+      setEditEmail(familyMembers[0].email);
+    }
+  }, [familyMembers, selectedMemberId]);
+
   const fetchFamilyMembers = async () => {
     setFamilyLoading(true);
     setFamilyError('');
