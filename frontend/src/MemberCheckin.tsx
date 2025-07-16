@@ -222,6 +222,20 @@ function MemberCheckin() {
             </div>
           </motion.div>
         )}
+        {/* SUCCESS STATE: All family members already checked in - persistent green message */}
+        {status === "register" && familyMembers.length > 1 && notCheckedInMembers.length === 0 && !checkinStatusLoading && (
+          <motion.div
+            className="w-full max-w-md"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="glass-card bg-gradient-to-r from-green-800 via-green-700 to-green-600 p-6 text-center">
+              <p className="text-xl font-semibold text-white">✓ All family members have checked in for this period!</p>
+              <p className="mt-2 text-lg text-white/90 font-medium">{getDailyMuayThaiMessage()}</p>
+            </div>
+          </motion.div>
+        )}
         {/* SUCCESS STATE: Single user after check-in - ONLY show green message for single */}
         {status === "success" && (familyMembers.length <= 1 || !familyMembers.length) && (
           <motion.div
