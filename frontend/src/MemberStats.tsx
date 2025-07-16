@@ -47,12 +47,16 @@ function MemberStats({ memberId }: Props) {
   const [isFamily, setIsFamily] = useState(false);
   const [familyLoading, setFamilyLoading] = useState(false);
   const [familyError, setFamilyError] = useState('');
+  const [familyFetchComplete, setFamilyFetchComplete] = useState(false);
 
   // Add member form state
   const [showAddMember, setShowAddMember] = useState(false);
   const [newMemberName, setNewMemberName] = useState("");
   const [addMemberError, setAddMemberError] = useState("");
   const [addMemberLoading, setAddMemberLoading] = useState(false);
+
+  // Declare selectedMember early to prevent initialization errors
+  const selectedMember = familyMembers.find(m => m.id === selectedMemberId);
 
   useEffect(() => {
     // Check if this is a family account
@@ -122,6 +126,11 @@ function MemberStats({ memberId }: Props) {
   useEffect(() => {
     const fetchAndSyncFamilyMembers = async () => {
       const memberEmail = localStorage.getItem('member_email');
+      console.log('Profile Debug: Starting family fetch', {
+        memberEmail,
+        memberId,
+        localStorage_member_id: localStorage.getItem('member_id')
+      });
       if (memberEmail) {
         const API_URL = getApiUrl();
         try {
@@ -137,7 +146,12 @@ function MemberStats({ memberId }: Props) {
           }
         } catch (e) {
           // Ignore errors
+        } finally {
+          setFamilyFetchComplete(true);
         }
+      } else {
+        // No email found, mark fetch as complete so we can show appropriate error
+        setFamilyFetchComplete(true);
       }
     };
     fetchAndSyncFamilyMembers();
@@ -145,19 +159,20 @@ function MemberStats({ memberId }: Props) {
 
   // After fetching family members, handle the case where there are no members left
   useEffect(() => {
-    if (familyMembers.length === 0) {
+    // Only check for "no members" after family fetch is complete
+    if (familyFetchComplete && familyMembers.length === 0) {
       // Clear localStorage and prompt user to check in again
       localStorage.removeItem('member_id');
       localStorage.removeItem('family_members');
       localStorage.removeItem('member_email');
       setError('No members found. Please check in or register again.');
-    } else if (!selectedMemberId || !familyMembers.find(m => m.id === selectedMemberId)) {
+    } else if (familyMembers.length > 0 && (!selectedMemberId || !familyMembers.find(m => m.id === selectedMemberId))) {
       // If selectedMemberId is invalid, select the first available member
       setSelectedMemberId(familyMembers[0].id);
       setEditName(familyMembers[0].name);
       setEditEmail(familyMembers[0].email);
     }
-  }, [familyMembers, selectedMemberId]);
+  }, [familyMembers, selectedMemberId, familyFetchComplete]);
 
   const fetchFamilyMembers = async () => {
     setFamilyLoading(true);
@@ -185,6 +200,7 @@ function MemberStats({ memberId }: Props) {
       setFamilyError('Network error loading family members.');
     } finally {
       setFamilyLoading(false);
+      setFamilyFetchComplete(true);
     }
   };
 
@@ -414,7 +430,6 @@ function MemberStats({ memberId }: Props) {
   const percent = Math.round((weeklyCheckins / goal) * 100);
   const activeMembers = familyMembers.filter(m => !m.is_deleted);
   const deletedMembers = familyMembers.filter(m => m.is_deleted);
-  const selectedMember = familyMembers.find(m => m.id === selectedMemberId);
 
   return (
     <div className="min-h-screen w-full bg-gray-900 font-poppins overflow-x-hidden">
