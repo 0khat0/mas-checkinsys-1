@@ -237,22 +237,19 @@ function MemberStats({ memberId }: Props) {
   const handleMemberDelete = async (memberIdToDelete: string) => {
     try {
       const API_URL = getApiUrl();
-      const res = await fetch(`${API_URL}/member/${memberIdToDelete}/soft-delete`, {
+      const res = await fetch(`${API_URL}/member/${memberIdToDelete}`, {
         method: "DELETE",
       });
-      
       if (res.ok) {
         setEditSuccess('Member removed successfully!');
-        // Update family members list
-        setFamilyMembers(prev => prev.map(member => 
-          member.id === memberIdToDelete 
-            ? { ...member, is_deleted: true, deleted_at: new Date().toISOString() }
-            : member
-        ));
-        
+        // Refresh family members
+        await fetchFamilyMembers();
+        // If only one member left, update isFamily
+        const updatedMembers = familyMembers.filter(m => m.id !== memberIdToDelete && !m.is_deleted);
+        setIsFamily(updatedMembers.length > 1);
         // If we deleted the currently selected member, switch to another member
         if (selectedMemberId === memberIdToDelete) {
-          const activeMembers = familyMembers.filter(m => !m.is_deleted);
+          const activeMembers = updatedMembers;
           if (activeMembers.length > 0) {
             setSelectedMemberId(activeMembers[0].id);
           }
@@ -449,18 +446,18 @@ function MemberStats({ memberId }: Props) {
                   <h3 className="text-lg font-semibold text-white mb-3">Active Members</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {activeMembers.map((member) => (
-                      <button
-                        key={member.id}
-                        onClick={() => setSelectedMemberId(member.id)}
-                        className={`p-3 rounded-lg border-2 transition-all duration-200 text-left ${
-                          selectedMemberId === member.id
-                            ? 'border-purple-500 bg-purple-500/20'
-                            : 'border-gray-600 bg-gray-700/50 hover:border-gray-500'
-                        }`}
-                      >
-                        <div className="text-white font-medium">{member.name}</div>
-                        <div className="text-white/60 text-sm">{member.email}</div>
-                      </button>
+                      <div key={member.id} className="flex items-center gap-2">
+                        <span className="text-white font-medium">{member.name}</span>
+                        <span className="text-white/60 text-sm">{member.email}</span>
+                        {activeMembers.length > 1 && (
+                          <button
+                            onClick={() => handleMemberDelete(member.id)}
+                            className="ml-2 bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs"
+                          >
+                            Remove Member
+                          </button>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -587,13 +584,10 @@ function MemberStats({ memberId }: Props) {
               </div>
               <div className="flex gap-3">
                 <button
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors duration-200 flex items-center gap-2"
-                  onClick={() => setEditMode(true)}
+                  className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2 rounded-lg transition-colors duration-200"
+                  onClick={() => setShowAddMember(true)}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                  Edit Profile
+                  + Add Member
                 </button>
                 {isFamily && selectedMember && (
                   <button

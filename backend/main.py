@@ -820,25 +820,23 @@ async def update_member(request: Request, member_id: str, update: models.MemberU
 @app.delete("/member/{member_id}")
 @limiter.limit("5/minute")
 async def delete_member(request: Request, member_id: str, db: Session = Depends(get_db)):
-    """Soft delete a member"""
+    """Hard delete a member"""
     # Validate UUID format
     if not is_valid_uuid(member_id):
         raise HTTPException(status_code=400, detail="Invalid member ID format")
     
     # Get member
     member = db.query(models.Member).filter(
-        models.Member.id == member_id,
-        models.Member.deleted_at.is_(None)
+        models.Member.id == member_id
     ).first()
     
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
     
-    # Soft delete
-    setattr(member, 'deleted_at', datetime.now(pytz.UTC))
+    db.delete(member)
     db.commit()
     
-    logger.info("Member soft deleted", member_id=str(member.id), name=member.name, email=member.email)
+    logger.info("Member hard deleted", member_id=str(member.id), name=member.name, email=member.email)
     
     return {"message": "Member deleted successfully"}
 

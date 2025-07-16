@@ -237,8 +237,8 @@ function MemberCheckin() {
             </div>
           </motion.div>
         )}
-        {/* Only show forms/options if not all checked in (family) or not success (individual) */}
-        {!(status === "register" && familyMembers.length > 1 && notCheckedInMembers.length === 0 && !checkinStatusLoading) && status !== "success" && (
+        {/* Only show forms/options if not a recognized family with unchecked members */}
+        {!(status === "register" && familyMembers.length > 1 && notCheckedInMembers.length > 0 && !checkinStatusLoading) && status !== "success" && (
           <>
             <motion.div
               className="w-full max-w-md mb-2"
@@ -287,109 +287,110 @@ function MemberCheckin() {
                 </motion.div>
               )}
             </AnimatePresence>
-            {/* Family Member Selection for Returning Families */}
-            <AnimatePresence>
-              {status === "register" && familyMembers.length > 1 && notCheckedInMembers.length > 0 && !checkinStatusLoading && (
-                <motion.div
-                  className="w-full max-w-md space-y-6"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <div className="glass-card space-y-6 p-6">
-                    <div className="text-center">
-                      <h3 className="text-xl font-semibold text-white mb-2">👨‍👩‍👧‍👦 Family Check-in</h3>
-                      <p className="text-white/70 mb-4">Select which family members are here today (not yet checked in):</p>
-                    </div>
-                    <div className="space-y-3">
-                      {notCheckedInMembers.map((memberName) => (
-                        <label key={memberName} className="flex items-center space-x-3 cursor-pointer p-3 rounded-lg hover:bg-white/5 transition-colors">
-                          <input
-                            type="checkbox"
-                            checked={selectedFamilyMembers.includes(memberName)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedFamilyMembers(prev => [...prev, memberName]);
-                              } else {
-                                setSelectedFamilyMembers(prev => prev.filter(name => name !== memberName));
-                              }
-                            }}
-                            className="w-5 h-5 text-red-600 bg-gray-700 border-gray-600 rounded focus:ring-red-500 focus:ring-2"
-                          />
-                          <span className="text-white font-medium">{memberName}</span>
-                        </label>
-                      ))}
-                    </div>
-                    <div className="flex gap-3">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedFamilyMembers(notCheckedInMembers); // Select all
-                        }}
-                        className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
-                      >
-                        Select All
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedFamilyMembers([]); // Clear all
-                        }}
-                        className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
-                      >
-                        Clear All
-                      </button>
-                    </div>
-                    <button
-                      onClick={async () => {
-                        if (selectedFamilyMembers.length === 0) {
-                          setMessage("Please select at least one family member.");
-                          return;
-                        }
-                        setStatus("loading");
-                        setMessage("");
-                        try {
-                          const API_URL = getApiUrl();
-                          const checkinData = {
-                            email: memberEmail!,
-                            member_names: selectedFamilyMembers
-                          };
-                          const res = await fetch(`${API_URL}/family/checkin`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify(checkinData),
-                          });
-                          if (res.ok) {
-                            const data = await res.json();
-                            setStatus("success");
-                            setMessage(data.message);
-                            setSelectedFamilyMembers([]);
-                            // Refresh check-in status after check-in
-                            await fetchFamilyCheckinStatus(memberEmail!);
-                            // If there are still unchecked members, set status back to register to allow more check-ins
-                            if (notCheckedInMembers.length > selectedFamilyMembers.length) {
-                              setStatus("register");
+            {/* Family Member Selection for Returning Families (exclusive UI) */}
+            {status === "register" && familyMembers.length > 1 && notCheckedInMembers.length > 0 && !checkinStatusLoading && (
+              <motion.div
+                className="w-full max-w-md space-y-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="glass-card space-y-6 p-6">
+                  <div className="text-center">
+                    <h3 className="text-xl font-semibold text-white mb-2">👨‍👩‍👧‍👦 Family Check-in</h3>
+                    <p className="text-white/70 mb-4">Select which family members are here today (not yet checked in):</p>
+                  </div>
+                  <div className="space-y-3">
+                    {notCheckedInMembers.map((memberName) => (
+                      <label key={memberName} className="flex items-center space-x-3 cursor-pointer p-3 rounded-lg hover:bg-white/5 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={selectedFamilyMembers.includes(memberName)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedFamilyMembers(prev => [...prev, memberName]);
+                            } else {
+                              setSelectedFamilyMembers(prev => prev.filter(name => name !== memberName));
                             }
-                          } else {
-                            const err = await res.json();
-                            setStatus("error");
-                            setMessage(err.detail || "Family check-in failed.");
-                          }
-                        } catch {
-                          setStatus("error");
-                          setMessage("Network error. Please try again.");
-                        }
+                          }}
+                          className="w-5 h-5 text-red-600 bg-gray-700 border-gray-600 rounded focus:ring-red-500 focus:ring-2"
+                        />
+                        <span className="text-white font-medium">{memberName}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedFamilyMembers(notCheckedInMembers); // Select all
                       }}
-                      disabled={selectedFamilyMembers.length === 0}
-                      className="w-full bg-gradient-to-r from-red-700 via-red-500 to-pink-500 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-red-700 transition-all duration-300 shadow-lg hover:shadow-black/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
                     >
-                      Check In Selected Members ({selectedFamilyMembers.length})
+                      Select All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedFamilyMembers([]); // Clear all
+                      }}
+                      className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                    >
+                      Clear All
                     </button>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  <button
+                    onClick={async () => {
+                      if (selectedFamilyMembers.length === 0) {
+                        setMessage("Please select at least one family member.");
+                        return;
+                      }
+                      setStatus("loading");
+                      setMessage("");
+                      try {
+                        const API_URL = getApiUrl();
+                        const checkinData = {
+                          email: memberEmail!,
+                          member_names: selectedFamilyMembers
+                        };
+                        const res = await fetch(`${API_URL}/family/checkin`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify(checkinData),
+                        });
+                        if (res.ok) {
+                          const data = await res.json();
+                          // Refresh check-in status after check-in
+                          await fetchFamilyCheckinStatus(memberEmail!);
+                          setSelectedFamilyMembers([]);
+                          // If all are now checked in, show green message
+                          if (notCheckedInMembers.length === selectedFamilyMembers.length || notCheckedInMembers.length === 0) {
+                            setStatus("register");
+                            setMessage("All family members have checked in for this period!\n" + (data.message || ""));
+                          } else {
+                            // If there are still unchecked members, keep showing selection
+                            setStatus("register");
+                            setMessage(data.message);
+                          }
+                        } else {
+                          const err = await res.json();
+                          setStatus("error");
+                          setMessage(err.detail || "Family check-in failed.");
+                        }
+                      } catch {
+                        setStatus("error");
+                        setMessage("Network error. Please try again.");
+                      }
+                    }}
+                    disabled={selectedFamilyMembers.length === 0}
+                    className="w-full bg-gradient-to-r from-red-700 via-red-500 to-pink-500 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-red-700 transition-all duration-300 shadow-lg hover:shadow-black/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Check In Selected Members ({selectedFamilyMembers.length})
+                  </button>
+                </div>
+              </motion.div>
+            )}
             {/* Registration or Check-In by Name Form */}
             <AnimatePresence>
               {status === "register" && !checkinByName && (
@@ -506,7 +507,7 @@ function MemberCheckin() {
                             : 'bg-gradient-to-r from-red-600 to-red-700 text-white border-red-600'
                         }`}
                       >
-                        {isFamily ? 'Go Back' : '👨‍👩‍👧‍👦 Family'}
+                        {isFamily ? 'Go Back' : '👨‍👩‍👧‍👦 Family?'}
                       </button>
                     </motion.div>
                     
