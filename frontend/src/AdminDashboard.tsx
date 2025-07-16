@@ -171,8 +171,8 @@ function AdminDashboard() {
         body: JSON.stringify({ password }),
       });
       if (res.ok) {
-        const data = await res.json();
-        localStorage.setItem('admin_token', data.token);
+        const { token } = await res.json();
+        localStorage.setItem('admin_token', token);
         setIsAuthenticated(true);
         setLoginError('');
       } else {
