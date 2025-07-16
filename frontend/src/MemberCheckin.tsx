@@ -431,7 +431,7 @@ function MemberCheckin() {
                       });
                       if (regRes.ok) {
                         const regData = await regRes.json();
-                        // Save family info
+                        // After successful family registration or check-in, always set familyMembers to the registered/checked-in names and do not clear it before rendering the green message.
                         localStorage.setItem("family_members", JSON.stringify(regData.members.map((m:any) => m.name)));
                         localStorage.setItem("member_email", memberEmailToUse);
                         if (regData.member_ids && regData.member_ids.length > 0) {
@@ -439,8 +439,9 @@ function MemberCheckin() {
                         }
                         setMemberEmail(memberEmailToUse);
                         setFamilyMembers(regData.members.map((m:any) => m.name));
+                        // In the family registration flow, after successful registration, set only the state for the family green message and do not set a separate registration success message.
                         setStatus("success");
-                        setMessage(regData.message || "Family registered and checked in!");
+                        setMessage("All family members have checked in for this period!");
                         return;
                       } else {
                         const err = await regRes.json();
@@ -728,20 +729,7 @@ function MemberCheckin() {
             </motion.div>
           )}
         </AnimatePresence>
-        {/* Success State */}
-        <AnimatePresence>
-          {status === "success" && (
-            <motion.div
-              className="w-full max-w-md glass-card bg-green-500/10 p-6 text-center"
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              transition={{ type: "spring", stiffness: 200, damping: 15 }}
-            >
-              <p className="text-xl font-semibold text-green-400">{message || "Registration and check-in successful!"}</p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+
         {/* Member Stats (moved to Profile page) */}
       </div>
     </div>
