@@ -347,8 +347,6 @@ function MemberCheckin() {
                   setMessage("");
                   const API_URL = getApiUrl();
                   let memberEmailToUse = formEmail.trim();
-                  let memberIdToUse = null;
-                  let familyMemberNames = [];
                   try {
                     // Try to look up the first member by name
                     const nameToLookup = allNames[0].trim();
@@ -363,14 +361,12 @@ function MemberCheckin() {
                       const memberEmail = memberData.email;
                       const memberId = memberData.id;
                       // Check if this is a family account
-                      let isFamilyAccount = false;
                       let familyMemberNames = [];
                       try {
                         const familyRes = await fetch(`${API_URL}/family/members/${encodeURIComponent(memberEmail)}`);
                         if (familyRes.ok) {
                           const familyData = await familyRes.json();
                           if (Array.isArray(familyData) && familyData.length > 1) {
-                            isFamilyAccount = true;
                             familyMemberNames = familyData.map((m) => m.name);
                             localStorage.setItem("family_members", JSON.stringify(familyMemberNames));
                             localStorage.setItem("member_email", memberEmail);
@@ -405,9 +401,9 @@ function MemberCheckin() {
                         body: JSON.stringify({ email: memberEmail }),
                       });
                       if (checkinRes.ok) {
-                        const data = await checkinRes.json();
-                        if (data.member_id && isValidUUID(data.member_id)) {
-                          setMemberId(data.member_id);
+                        await checkinRes.json();
+                        if (memberId && isValidUUID(memberId)) {
+                          setMemberId(memberId);
                         }
                         setStatus("success");
                         setMessage("Check-in successful! Welcome back.");
