@@ -299,7 +299,7 @@ function MemberCheckin() {
                 >
                   <div className="glass-card space-y-6 p-6">
                     <div className="text-center">
-                      <h3 className="text-xl font-semibold text-white mb-2">👨‍👩‍��‍👦 Family Check-in</h3>
+                      <h3 className="text-xl font-semibold text-white mb-2">👨‍👩‍👧‍👦 Family Check-in</h3>
                       <p className="text-white/70 mb-4">Select which family members are here today (not yet checked in):</p>
                     </div>
                     <div className="space-y-3">
@@ -587,7 +587,6 @@ function MemberCheckin() {
                     let anyNotFound = false;
                     let firstMemberId = null;
                     let firstMemberEmail = null;
-                    let isFamilyAccount = false;
                     let familyMemberNames = [];
                     for (const name of allNames) {
                       try {
@@ -626,7 +625,6 @@ function MemberCheckin() {
                         if (familyRes.ok) {
                           const familyData = await familyRes.json();
                           if (Array.isArray(familyData) && familyData.length > 1) {
-                            isFamilyAccount = true;
                             familyMemberNames = familyData.map((m) => m.name);
                             // Set member_id to the first member's id (primary)
                             if (familyData[0]?.id && isValidUUID(familyData[0].id)) {
