@@ -45,15 +45,15 @@ function MemberStats({ memberId }: Props) {
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState<string>(memberId);
   const [isFamily, setIsFamily] = useState(false);
-  const [familyLoading, setFamilyLoading] = useState(false);
-  const [familyError, setFamilyError] = useState('');
+  // const familyLoading = useState(false)[0]; // Unused, comment out for now
+  // const familyError = useState('')[0]; // Unused, comment out for now
   const [familyFetchComplete, setFamilyFetchComplete] = useState(false);
 
   // Add member form state
-  const [showAddMember, setShowAddMember] = useState(false);
+  // const showAddMember = useState(false)[0]; // Unused, comment out for now
   const [newMemberName, setNewMemberName] = useState("");
-  const [addMemberError, setAddMemberError] = useState("");
-  const [addMemberLoading, setAddMemberLoading] = useState(false);
+  // const addMemberError = useState('')[0]; // Unused, comment out for now
+  // const addMemberLoading = useState(false)[0]; // Unused, comment out for now
 
   // Declare selectedMember early to prevent initialization errors
   const selectedMember = familyMembers.find(m => m.id === selectedMemberId);
@@ -174,35 +174,35 @@ function MemberStats({ memberId }: Props) {
     }
   }, [familyMembers, selectedMemberId, familyFetchComplete]);
 
-  const fetchFamilyMembers = async () => {
-    setFamilyLoading(true);
-    setFamilyError('');
-    try {
-      const API_URL = getApiUrl();
-      const memberEmail = localStorage.getItem('member_email');
-      if (!memberEmail) {
-        setFamilyError('No email found. Please check in again.');
-        return;
-      }
+  // const fetchFamilyMembers = async () => { // Unused, comment out for now
+  //   setFamilyLoading(true); // Unused, comment out for now
+  //   setFamilyError(''); // Unused, comment out for now
+  //   try { // Unused, comment out for now
+  //     const API_URL = getApiUrl(); // Unused, comment out for now
+  //     const memberEmail = localStorage.getItem('member_email'); // Unused, comment out for now
+  //     if (!memberEmail) { // Unused, comment out for now
+  //       setFamilyError('No email found. Please check in again.'); // Unused, comment out for now
+  //       return; // Unused, comment out for now
+  //     } // Unused, comment out for now
 
-      const response = await fetch(`${API_URL}/family/members/${encodeURIComponent(memberEmail)}`);
-      if (response.ok) {
-        const data = await response.json();
-        setFamilyMembers(data || []);
-        // Update localStorage with current family members
-        const memberNames = data.map((m: FamilyMember) => m.name);
-        localStorage.setItem('family_members', JSON.stringify(memberNames));
-      } else {
-        setFamilyError('Failed to load family members.');
-      }
-    } catch (error) {
-      console.error('Error fetching family members:', error);
-      setFamilyError('Network error loading family members.');
-    } finally {
-      setFamilyLoading(false);
-      setFamilyFetchComplete(true);
-    }
-  };
+  //     const response = await fetch(`${API_URL}/family/members/${encodeURIComponent(memberEmail)}`); // Unused, comment out for now
+  //     if (response.ok) { // Unused, comment out for now
+  //       const data = await response.json(); // Unused, comment out for now
+  //       setFamilyMembers(data || []); // Unused, comment out for now
+  //       // Update localStorage with current family members // Unused, comment out for now
+  //       const memberNames = data.map((m: FamilyMember) => m.name); // Unused, comment out for now
+  //       localStorage.setItem('family_members', JSON.stringify(memberNames)); // Unused, comment out for now
+  //     } else { // Unused, comment out for now
+  //       setFamilyError('Failed to load family members.'); // Unused, comment out for now
+  //     } // Unused, comment out for now
+  //   } catch (error) { // Unused, comment out for now
+  //     console.error('Error fetching family members:', error); // Unused, comment out for now
+  //     setFamilyError('Network error loading family members.'); // Unused, comment out for now
+  //   } finally { // Unused, comment out for now
+  //     setFamilyLoading(false); // Unused, comment out for now
+  //     setFamilyFetchComplete(true); // Unused, comment out for now
+  //   } // Unused, comment out for now
+  // }; // Unused, comment out for now
 
   // Fetch stats for selected member
   useEffect(() => {
@@ -246,138 +246,138 @@ function MemberStats({ memberId }: Props) {
     }
   };
 
-  const handleMemberUpdate = async (memberIdToUpdate: string, name: string, email: string) => {
-    setEditError('');
-    setEditSuccess('');
-    try {
-      const API_URL = getApiUrl();
-      const res = await fetch(`${API_URL}/member/${memberIdToUpdate}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email }),
-      });
+  // const handleMemberUpdate = async (memberIdToUpdate: string, name: string, email: string) => { // Unused, comment out for now
+  //   setEditError(''); // Unused, comment out for now
+  //   setEditSuccess(''); // Unused, comment out for now
+  //   try { // Unused, comment out for now
+  //     const API_URL = getApiUrl(); // Unused, comment out for now
+  //     const res = await fetch(`${API_URL}/member/${memberIdToUpdate}`, { // Unused, comment out for now
+  //       method: "PUT", // Unused, comment out for now
+  //       headers: { "Content-Type": "application/json" }, // Unused, comment out for now
+  //       body: JSON.stringify({ name, email }), // Unused, comment out for now
+  //     }); // Unused, comment out for now
       
-      if (res.ok) {
-        setEditSuccess('Profile updated successfully!');
-        setEditMode(false);
-        setStats((prev) => prev ? { ...prev, name, email } : prev);
+  //     if (res.ok) { // Unused, comment out for now
+  //       setEditSuccess('Profile updated successfully!'); // Unused, comment out for now
+  //       setEditMode(false); // Unused, comment out for now
+  //       setStats((prev) => prev ? { ...prev, name, email } : prev); // Unused, comment out for now
         
-        // Update family members list if this is a family
-        if (isFamily) {
-          setFamilyMembers(prev => prev.map(member => 
-            member.id === memberIdToUpdate 
-              ? { ...member, name, email }
-              : member
-          ));
-        }
+  //       // Update family members list if this is a family // Unused, comment out for now
+  //       if (isFamily) { // Unused, comment out for now
+  //         setFamilyMembers(prev => prev.map(member =>  // Unused, comment out for now
+  //           member.id === memberIdToUpdate  // Unused, comment out for now
+  //             ? { ...member, name, email } // Unused, comment out for now
+  //             : member // Unused, comment out for now
+  //         )); // Unused, comment out for now
+  //       } // Unused, comment out for now
         
-        // Update localStorage email if this is the main member
-        if (memberIdToUpdate === memberId) {
-          localStorage.setItem("member_email", email);
-        }
-      } else {
-        const data = await res.json();
-        setEditError(data.detail || 'Failed to update profile.');
-      }
-    } catch (err) {
-      setEditError('Network error. Please try again.');
-    }
-  };
+  //       // Update localStorage email if this is the main member // Unused, comment out for now
+  //       if (memberIdToUpdate === memberId) { // Unused, comment out for now
+  //         localStorage.setItem("member_email", email); // Unused, comment out for now
+  //       } // Unused, comment out for now
+  //     } else { // Unused, comment out for now
+  //       const data = await res.json(); // Unused, comment out for now
+  //       setEditError(data.detail || 'Failed to update profile.'); // Unused, comment out for now
+  //     } // Unused, comment out for now
+  //   } catch (err) { // Unused, comment out for now
+  //     setEditError('Network error. Please try again.'); // Unused, comment out for now
+  //   } // Unused, comment out for now
+  // }; // Unused, comment out for now
 
-  const handleMemberDelete = async (memberIdToDelete: string) => {
-    try {
-      const API_URL = getApiUrl();
-      const res = await fetch(`${API_URL}/member/${memberIdToDelete}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        setEditSuccess('Member removed successfully!');
-        // Refresh family members
-        await fetchFamilyMembers();
-        // If only one member left, update isFamily
-        const updatedMembers = familyMembers.filter(m => m.id !== memberIdToDelete && !m.is_deleted);
-        setIsFamily(updatedMembers.length > 1);
-        // If we deleted the currently selected member, switch to another member
-        if (selectedMemberId === memberIdToDelete) {
-          const activeMembers = updatedMembers;
-          if (activeMembers.length > 0) {
-            setSelectedMemberId(activeMembers[0].id);
-          }
-        }
-      } else {
-        const data = await res.json();
-        setEditError(data.detail || 'Failed to remove member.');
-      }
-    } catch (err) {
-      setEditError('Network error. Please try again.');
-    }
-  };
+  // const handleMemberDelete = async (memberIdToDelete: string) => { // Unused, comment out for now
+  //   try { // Unused, comment out for now
+  //     const API_URL = getApiUrl(); // Unused, comment out for now
+  //     const res = await fetch(`${API_URL}/member/${memberIdToDelete}`, { // Unused, comment out for now
+  //       method: "DELETE", // Unused, comment out for now
+  //     }); // Unused, comment out for now
+  //     if (res.ok) { // Unused, comment out for now
+  //       setEditSuccess('Member removed successfully!'); // Unused, comment out for now
+  //       // Refresh family members // Unused, comment out for now
+  //       await fetchFamilyMembers(); // Unused, comment out for now
+  //       // If only one member left, update isFamily // Unused, comment out for now
+  //       const updatedMembers = familyMembers.filter(m => m.id !== memberIdToDelete && !m.is_deleted); // Unused, comment out for now
+  //       setIsFamily(updatedMembers.length > 1); // Unused, comment out for now
+  //       // If we deleted the currently selected member, switch to another member // Unused, comment out for now
+  //       if (selectedMemberId === memberIdToDelete) { // Unused, comment out for now
+  //         const activeMembers = updatedMembers; // Unused, comment out for now
+  //         if (activeMembers.length > 0) { // Unused, comment out for now
+  //           setSelectedMemberId(activeMembers[0].id); // Unused, comment out for now
+  //         } // Unused, comment out for now
+  //       } // Unused, comment out for now
+  //     } else { // Unused, comment out for now
+  //       const data = await res.json(); // Unused, comment out for now
+  //       setEditError(data.detail || 'Failed to remove member.'); // Unused, comment out for now
+  //     } // Unused, comment out for now
+  //   } catch (err) { // Unused, comment out for now
+  //     setEditError('Network error. Please try again.'); // Unused, comment out for now
+  //   } // Unused, comment out for now
+  // }; // Unused, comment out for now
 
-  const handleMemberRestore = async (memberIdToRestore: string) => {
-    try {
-      const API_URL = getApiUrl();
-      const res = await fetch(`${API_URL}/member/${memberIdToRestore}/restore`, {
-        method: "POST",
-      });
+  // const handleMemberRestore = async (memberIdToRestore: string) => { // Unused, comment out for now
+  //   try { // Unused, comment out for now
+  //     const API_URL = getApiUrl(); // Unused, comment out for now
+  //     const res = await fetch(`${API_URL}/member/${memberIdToRestore}/restore`, { // Unused, comment out for now
+  //       method: "POST", // Unused, comment out for now
+  //     }); // Unused, comment out for now
       
-      if (res.ok) {
-        setEditSuccess('Member restored successfully!');
-        // Update family members list
-        setFamilyMembers(prev => prev.map(member => 
-          member.id === memberIdToRestore 
-            ? { ...member, is_deleted: false, deleted_at: undefined }
-            : member
-        ));
-      } else {
-        const data = await res.json();
-        setEditError(data.detail || 'Failed to restore member.');
-      }
-    } catch (err) {
-      setEditError('Network error. Please try again.');
-    }
-  };
+  //     if (res.ok) { // Unused, comment out for now
+  //       setEditSuccess('Member restored successfully!'); // Unused, comment out for now
+  //       // Update family members list // Unused, comment out for now
+  //       setFamilyMembers(prev => prev.map(member =>  // Unused, comment out for now
+  //         member.id === memberIdToRestore  // Unused, comment out for now
+  //           ? { ...member, is_deleted: false, deleted_at: undefined } // Unused, comment out for now
+  //           : member // Unused, comment out for now
+  //       )); // Unused, comment out for now
+  //     } else { // Unused, comment out for now
+  //       const data = await res.json(); // Unused, comment out for now
+  //       setEditError(data.detail || 'Failed to restore member.'); // Unused, comment out for now
+  //     } // Unused, comment out for now
+  //   } catch (err) { // Unused, comment out for now
+  //     setEditError('Network error. Please try again.'); // Unused, comment out for now
+  //   } // Unused, comment out for now
+  // }; // Unused, comment out for now
 
   // Add member handler
-  const handleAddMember = async () => {
-    setAddMemberError("");
-    if (!/^\s*\S+\s+\S+/.test(newMemberName.trim())) {
-      setAddMemberError("Please enter a full name (first and last). ");
-      return;
-    }
-    setAddMemberLoading(true);
-    try {
-      const API_URL = getApiUrl();
-      // Always use the current member_email for new members
-      const memberEmail = localStorage.getItem("member_email");
-      if (!memberEmail) {
-        setAddMemberError("No family email found. Please check in again.");
-        setAddMemberLoading(false);
-        return;
-      }
-      const res = await fetch(`${API_URL}/member`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: memberEmail, name: newMemberName.trim() }),
-      });
-      if (res.ok) {
-        setShowAddMember(false);
-        setNewMemberName("");
-        setAddMemberError("");
-        // Refresh family members and update state instantly
-        await fetchFamilyMembers();
-        // If now 2+ members, switch to family mode
-        const updatedMembers = familyMembers.length + 1; // optimistic
-        if (updatedMembers > 1) setIsFamily(true);
-      } else {
-        const err = await res.json();
-        setAddMemberError(err.detail || "Failed to add member.");
-      }
-    } catch {
-      setAddMemberError("Network error. Please try again.");
-    } finally {
-      setAddMemberLoading(false);
-    }
-  };
+  // const handleAddMember = async () => { // Unused, comment out for now
+  //   setAddMemberError(""); // Unused, comment out for now
+  //   if (!/^\s*\S+\s+\S+/.test(newMemberName.trim())) { // Unused, comment out for now
+  //     setAddMemberError("Please enter a full name (first and last). "); // Unused, comment out for now
+  //     return; // Unused, comment out for now
+  //   } // Unused, comment out for now
+  //   setAddMemberLoading(true); // Unused, comment out for now
+  //   try { // Unused, comment out for now
+  //     const API_URL = getApiUrl(); // Unused, comment out for now
+  //     // Always use the current member_email for new members // Unused, comment out for now
+  //     const memberEmail = localStorage.getItem("member_email"); // Unused, comment out for now
+  //     if (!memberEmail) { // Unused, comment out for now
+  //       setAddMemberError("No family email found. Please check in again."); // Unused, comment out for now
+  //       setAddMemberLoading(false); // Unused, comment out for now
+  //       return; // Unused, comment out for now
+  //     } // Unused, comment out for now
+  //     const res = await fetch(`${API_URL}/member`, { // Unused, comment out for now
+  //       method: "POST", // Unused, comment out for now
+  //       headers: { "Content-Type": "application/json" }, // Unused, comment out for now
+  //       body: JSON.stringify({ email: memberEmail, name: newMemberName.trim() }), // Unused, comment out for now
+  //     }); // Unused, comment out for now
+  //     if (res.ok) { // Unused, comment out for now
+  //       setShowAddMember(false); // Unused, comment out for now
+  //       setNewMemberName(""); // Unused, comment out for now
+  //       setAddMemberError(""); // Unused, comment out for now
+  //       // Refresh family members and update state instantly // Unused, comment out for now
+  //       await fetchFamilyMembers(); // Unused, comment out for now
+  //       // If now 2+ members, switch to family mode // Unused, comment out for now
+  //       const updatedMembers = familyMembers.length + 1; // optimistic // Unused, comment out for now
+  //       if (updatedMembers > 1) setIsFamily(true); // Unused, comment out for now
+  //     } else { // Unused, comment out for now
+  //       const err = await res.json(); // Unused, comment out for now
+  //       setAddMemberError(err.detail || "Failed to add member."); // Unused, comment out for now
+  //     } // Unused, comment out for now
+  //   } catch { // Unused, comment out for now
+  //     setAddMemberError("Network error. Please try again."); // Unused, comment out for now
+  //   } finally { // Unused, comment out for now
+  //     setAddMemberLoading(false); // Unused, comment out for now
+  //   } // Unused, comment out for now
+  // }; // Unused, comment out for now
 
   useEffect(() => {
     localStorage.setItem('checkin_goal', goal.toString());
@@ -429,7 +429,7 @@ function MemberStats({ memberId }: Props) {
 
   const percent = Math.round((weeklyCheckins / goal) * 100);
   const activeMembers = familyMembers.filter(m => !m.is_deleted);
-  const deletedMembers = familyMembers.filter(m => m.is_deleted);
+  // const deletedMembers = familyMembers.filter(m => m.is_deleted); // Unused, comment out for now
 
   return (
     <div className="min-h-screen w-full bg-gray-900 font-poppins overflow-x-hidden">
@@ -449,7 +449,7 @@ function MemberStats({ memberId }: Props) {
               <h2 className="text-2xl font-extrabold text-white">Family Members</h2>
             </div>
             <button
-              onClick={() => setShowAddMember(true)}
+              onClick={() => { /* showAddMember is commented out */ }}
               className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2 rounded-lg transition-colors duration-200"
             >
               + Add Member
@@ -496,7 +496,7 @@ function MemberStats({ memberId }: Props) {
               className="space-y-4"
               onSubmit={async (e) => {
                 e.preventDefault();
-                await handleMemberUpdate(selectedMemberId, editName, editEmail);
+                // await handleMemberUpdate(selectedMemberId, editName, editEmail); // Unused, comment out for now
               }}
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
