@@ -313,7 +313,7 @@ function MemberStats({ memberId }: Props) {
         setShowAddMember(false);
         setNewMemberName("");
         setAddMemberError("");
-        // Refresh family members
+        // Refresh family members and update state instantly
         await fetchFamilyMembers();
         // If now 2+ members, switch to family mode
         const updatedMembers = familyMembers.length + 1; // optimistic
@@ -448,20 +448,21 @@ function MemberStats({ memberId }: Props) {
                 {/* Active Members */}
                 <div>
                   <h3 className="text-lg font-semibold text-white mb-3">Active Members</h3>
+                  {/* Family Members Box (first box): selectable cards, no delete buttons */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {activeMembers.map((member) => (
-                      <div key={member.id} className="flex items-center gap-2">
-                        <span className="text-white font-medium">{member.name}</span>
-                        <span className="text-white/60 text-sm">{member.email}</span>
-                        {activeMembers.length > 1 && (
-                          <button
-                            onClick={() => handleMemberDelete(member.id)}
-                            className="ml-2 bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs"
-                          >
-                            Remove Member
-                          </button>
-                        )}
-                      </div>
+                      <button
+                        key={member.id}
+                        onClick={() => setSelectedMemberId(member.id)}
+                        className={`p-3 rounded-lg border-2 transition-all duration-200 text-left ${
+                          selectedMemberId === member.id
+                            ? 'border-purple-500 bg-purple-500/20'
+                            : 'border-gray-600 bg-gray-700/50 hover:border-gray-500'
+                        }`}
+                      >
+                        <div className="text-white font-medium">{member.name}</div>
+                        <div className="text-white/60 text-sm">{member.email}</div>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -575,58 +576,102 @@ function MemberStats({ memberId }: Props) {
               </div>
             </form>
           ) : (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-gray-700/50 rounded-lg p-4">
-                  <div className="text-white/50 text-sm font-medium mb-1">Full Name</div>
-                  <div className="text-white text-lg font-semibold">{stats.name || 'Not set'}</div>
+            <div className="bg-gray-800/50 rounded-xl p-6 backdrop-blur-sm border border-white/10">
+              <div className="mb-6 flex flex-col items-start">
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-2xl font-extrabold text-white">
+                    {isFamily ? `${selectedMember?.name || 'Member'}'s Profile` : 'My Profile'}
+                  </h2>
                 </div>
-                <div className="bg-gray-700/50 rounded-lg p-4">
-                  <div className="text-white/50 text-sm font-medium mb-1">Email Address</div>
-                  <div className="text-white text-lg font-semibold">{stats.email || 'Not set'}</div>
-                </div>
+                <div className="w-16 h-1 rounded-full bg-gradient-to-r from-red-500 to-red-700" />
               </div>
-              <div className="flex gap-3">
-                {showAddMember ? (
-                  <form
-                    className="flex flex-col sm:flex-row gap-2 items-center"
-                    onSubmit={e => { e.preventDefault(); handleAddMember(); }}
-                  >
+              <form
+                className="space-y-4"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  await handleMemberUpdate(selectedMemberId, editName, editEmail);
+                }}
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-white/70 text-sm font-medium mb-2">Full Name</label>
                     <input
-                      className="input-field flex-1"
-                      placeholder="Enter new member's full name"
                       type="text"
-                      value={newMemberName}
-                      onChange={e => setNewMemberName(e.target.value)}
+                      value={editName}
+                      onChange={e => setEditName(e.target.value)}
+                      className="w-full px-4 py-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
+                      placeholder="Enter your full name"
                       required
-                      disabled={addMemberLoading}
                     />
-                    <button
-                      type="submit"
-                      className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors duration-200"
-                      disabled={addMemberLoading}
-                    >
-                      {addMemberLoading ? "Adding..." : "Add"}
-                    </button>
+                  </div>
+                  <div>
+                    <label className="block text-white/70 text-sm font-medium mb-2">Email Address</label>
+                    <input
+                      type="email"
+                      value={editEmail}
+                      onChange={e => setEditEmail(e.target.value)}
+                      className="w-full px-4 py-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
+                      placeholder="Enter your email"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    type="submit"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors duration-200 flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Save Changes
+                  </button>
+                  {activeMembers.length > 1 && (
                     <button
                       type="button"
-                      className="bg-gray-600 hover:bg-gray-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors duration-200"
-                      onClick={() => { setShowAddMember(false); setNewMemberName(""); setAddMemberError(""); }}
-                      disabled={addMemberLoading}
+                      className="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors duration-200 flex items-center gap-2"
+                      onClick={async () => {
+                        await handleMemberDelete(selectedMemberId);
+                        // After delete, select the next available member
+                        const updatedMembers = familyMembers.filter(m => m.id !== selectedMemberId && !m.is_deleted);
+                        if (updatedMembers.length > 0) {
+                          setSelectedMemberId(updatedMembers[0].id);
+                          setEditName(updatedMembers[0].name);
+                          setEditEmail(updatedMembers[0].email);
+                        }
+                      }}
                     >
-                      Cancel
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Delete Member
                     </button>
-                  </form>
-                ) : (
-                  <button
-                    className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2 rounded-lg transition-colors duration-200"
-                    onClick={() => setShowAddMember(true)}
-                  >
-                    + Add Member
-                  </button>
-                )}
-                {addMemberError && <div className="text-red-400 mt-2 text-sm">{addMemberError}</div>}
-              </div>
+                  )}
+                </div>
+              </form>
+              {editError && (
+                <motion.div 
+                  className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  {editError}
+                </motion.div>
+              )}
+              {editSuccess && (
+                <motion.div 
+                  className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-green-400 text-sm"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  {editSuccess}
+                </motion.div>
+              )}
             </div>
           )}
           

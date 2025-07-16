@@ -392,6 +392,20 @@ function AdminDashboard() {
                             <td className="py-3 px-4 text-white/90 font-medium">{member.name}</td>
                             <td className="py-3 px-4 text-white/90">{member.email}</td>
                             <td className="py-3 px-4 text-white/90">{formatDate(member.created_at)}</td>
+                            <td className="py-3 px-4">
+                              <button
+                                className="bg-red-600 hover:bg-red-700 text-white font-semibold px-3 py-1 rounded text-xs"
+                                onClick={async () => {
+                                  if (window.confirm('Are you sure you want to permanently delete this member? This cannot be undone.')) {
+                                    const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+                                    await fetch(`${API_URL}/member/${member.id}`, { method: 'DELETE' });
+                                    fetchMembers(); // Refresh list
+                                  }
+                                }}
+                              >
+                                Delete
+                              </button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
