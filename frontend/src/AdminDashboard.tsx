@@ -399,7 +399,7 @@ function AdminDashboard() {
                                   if (window.confirm('Are you sure you want to permanently delete this member? This cannot be undone.')) {
                                     const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
                                     await fetch(`${API_URL}/member/${member.id}`, { method: 'DELETE' });
-                                    fetchMembers(); // Refresh list
+                                    await fetchMembers(); // Always await to ensure UI is in sync
                                   }
                                 }}
                               >

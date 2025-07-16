@@ -118,12 +118,30 @@ function MemberStats({ memberId }: Props) {
     fetchStats();
   }, [memberId]);
 
-  // Fetch family members if this is a family account
+  // On profile page load, always fetch latest family members and update state
   useEffect(() => {
-    if (isFamily) {
-      fetchFamilyMembers();
-    }
-  }, [isFamily]);
+    const fetchAndSyncFamilyMembers = async () => {
+      const memberEmail = localStorage.getItem('member_email');
+      if (memberEmail) {
+        const API_URL = getApiUrl();
+        try {
+          const response = await fetch(`${API_URL}/family/members/${encodeURIComponent(memberEmail)}`);
+          if (response.ok) {
+            const data = await response.json();
+            setFamilyMembers(data || []);
+            // Update localStorage with current family members
+            const memberNames = data.map((m: any) => m.name);
+            localStorage.setItem('family_members', JSON.stringify(memberNames));
+            // If only one member, switch to single-user mode
+            setIsFamily((data || []).length > 1);
+          }
+        } catch (e) {
+          // Ignore errors
+        }
+      }
+    };
+    fetchAndSyncFamilyMembers();
+  }, []);
 
   const fetchFamilyMembers = async () => {
     setFamilyLoading(true);
@@ -332,6 +350,14 @@ function MemberStats({ memberId }: Props) {
   useEffect(() => {
     localStorage.setItem('checkin_goal', goal.toString());
   }, [goal]);
+
+  // When switching selectedMemberId, update editName and editEmail to match the selected member
+  useEffect(() => {
+    if (selectedMember) {
+      setEditName(selectedMember.name || '');
+      setEditEmail(selectedMember.email || '');
+    }
+  }, [selectedMemberId, familyMembers]);
 
   if (isLoading) {
     return (
