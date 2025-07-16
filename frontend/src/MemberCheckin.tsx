@@ -403,7 +403,7 @@ function MemberCheckin() {
                     });
                     
                     if (checkinRes.ok) {
-                      const checkinData = await checkinRes.json();
+                      await checkinRes.json(); // Still await the response to avoid unhandled promise
                       localStorage.setItem("member_email", memberEmail);
                       localStorage.setItem("member_id", memberId);
                       setMemberEmail(memberEmail);
