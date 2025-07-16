@@ -342,13 +342,13 @@ async def get_today_checkins(request: Request, db: Session = Depends(get_db)):
     start_utc = start.astimezone(pytz.UTC)
     end_utc = end.astimezone(pytz.UTC)
     
-    # Use optimized query with joins
+    # Use optimized query with joins, order by timestamp descending
     checkins = db.query(models.Checkin, models.Member).join(
         models.Member, models.Checkin.member_id == models.Member.id
     ).filter(
         models.Checkin.timestamp >= start_utc,
         models.Checkin.timestamp <= end_utc
-    ).all()
+    ).order_by(models.Checkin.timestamp.desc()).all()
     
     result = []
     for checkin, member in checkins:

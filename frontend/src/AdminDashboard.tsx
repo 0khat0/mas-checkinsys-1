@@ -426,7 +426,7 @@ function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {[...todayCheckins].reverse().map((checkin) => (
+                  {todayCheckins.map((checkin) => (
                     <tr 
                       key={checkin.checkin_id}
                       className="border-b border-white/5 hover:bg-white/5 transition-colors"
