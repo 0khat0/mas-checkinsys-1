@@ -512,20 +512,35 @@ function MemberCheckin() {
 
                   for (const [idx, name] of allNames.entries()) {
                     try {
-                      const res = await fetch(`${API_URL}/checkin`, {
+                      // Step 1: Look up member by name
+                      const lookupRes = await fetch(`${API_URL}/member/lookup-by-name`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ name }),
+                        body: JSON.stringify({ name: name.trim().replace(/\s+/g, ' ') }),
                       });
-                      if (res.ok) {
-                        const data = await res.json();
+                      if (!lookupRes.ok) {
+                        results.push(`${name}: Not found`);
+                        anyNotFound = true;
+                        continue;
+                      }
+                      const memberData = await lookupRes.json();
+                      const memberEmail = memberData.email;
+                      const memberId = memberData.id;
+                      // Step 2: Check in with email
+                      const checkinRes = await fetch(`${API_URL}/checkin`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email: memberEmail }),
+                      });
+                      if (checkinRes.ok) {
+                        const data = await checkinRes.json();
                         results.push(`${name}: Check-in confirmed`);
                         if (idx === 0) {
-                          firstMemberId = data.member_id;
-                          firstMemberEmail = data.email;
+                          firstMemberId = memberId;
+                          firstMemberEmail = memberEmail;
                         }
                       } else {
-                        results.push(`${name}: Not found`);
+                        results.push(`${name}: Check-in failed`);
                         anyNotFound = true;
                       }
                     } catch {
