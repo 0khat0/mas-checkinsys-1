@@ -291,12 +291,13 @@ function MemberStats({ memberId }: Props) {
   const handleAddMember = async () => {
     setAddMemberError("");
     if (!/^\s*\S+\s+\S+/.test(newMemberName.trim())) {
-      setAddMemberError("Please enter a full name (first and last).");
+      setAddMemberError("Please enter a full name (first and last). ");
       return;
     }
     setAddMemberLoading(true);
     try {
       const API_URL = getApiUrl();
+      // Always use the current member_email for new members
       const memberEmail = localStorage.getItem("member_email");
       if (!memberEmail) {
         setAddMemberError("No family email found. Please check in again.");
@@ -313,7 +314,10 @@ function MemberStats({ memberId }: Props) {
         setNewMemberName("");
         setAddMemberError("");
         // Refresh family members
-        fetchFamilyMembers();
+        await fetchFamilyMembers();
+        // If now 2+ members, switch to family mode
+        const updatedMembers = familyMembers.length + 1; // optimistic
+        if (updatedMembers > 1) setIsFamily(true);
       } else {
         const err = await res.json();
         setAddMemberError(err.detail || "Failed to add member.");
