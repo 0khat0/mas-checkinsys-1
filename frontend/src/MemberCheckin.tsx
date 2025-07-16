@@ -344,88 +344,82 @@ function MemberCheckin() {
                       return;
                     }
                   }
-                  if (!/^\S+@\S+\.\S+$/.test(formEmail.trim())) {
-                    setMessage("Please enter a valid email address.");
-                    return;
-                  }
                   setStatus("loading");
                   setMessage("");
                   const API_URL = getApiUrl();
                   
-                  if (isFamily && allNames.length > 1) {
-                    // Use family registration endpoint
+                  // Step 1: Look up member by name to get email and family info
+                  try {
+                    const nameToLookup = allNames[0].trim(); // Use the first name entered
+                    const lookupRes = await fetch(`${API_URL}/member/lookup-by-name`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ name: nameToLookup }),
+                    });
+                    
+                    if (!lookupRes.ok) {
+                      setStatus("register");
+                      setFormName("");
+                      setFamilyNames([]);
+                      setMessage("Name not found. Please register or re-enter your name.");
+                      return;
+                    }
+                    
+                    const memberData = await lookupRes.json();
+                    const memberEmail = memberData.email;
+                    const memberId = memberData.id;
+                    
+                    // Step 2: Check if this is a family account
+                    let familyMemberNames = [];
                     try {
-                      const familyData = {
-                        email: formEmail,
-                        members: allNames.map(name => ({ name: name.trim() }))
-                      };
-                      
-                      const res = await fetch(`${API_URL}/family/register`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(familyData),
-                      });
-                      
-                      if (res.ok) {
-                        const data = await res.json();
-                        // Store family info in localStorage
-                        localStorage.setItem("member_email", formEmail);
-                        localStorage.setItem("family_members", JSON.stringify(allNames));
-                        setMemberEmail(formEmail);
-                        // NEW: Save the first member's id as member_id for profile access
-                        if (data.member_ids && Array.isArray(data.member_ids) && data.member_ids.length > 0) {
-                          localStorage.setItem("member_id", data.member_ids[0]);
+                      const familyRes = await fetch(`${API_URL}/family/members/${encodeURIComponent(memberEmail)}`);
+                      if (familyRes.ok) {
+                        const familyData = await familyRes.json();
+                        if (Array.isArray(familyData) && familyData.length > 1) {
+                          familyMemberNames = familyData.map((m) => m.name);
+                          // Store family info and set up family mode
+                          localStorage.setItem("family_members", JSON.stringify(familyMemberNames));
+                          localStorage.setItem("member_email", memberEmail);
+                          localStorage.setItem("member_id", memberId);
+                          setMemberEmail(memberEmail);
+                          setFamilyMembers(familyMemberNames);
+                          
+                          // Fetch family check-in status
+                          await fetchFamilyCheckinStatus(memberEmail);
+                          setStatus("register");
+                          setMessage("Welcome back! Select family members to check in:");
+                          return;
                         }
-                        setStatus("success");
-                        setMessage(data.message);
-                      } else {
-                        const err = await res.json();
-                        setStatus("error");
-                        setMessage(err.detail || "Family registration failed.");
                       }
-                    } catch {
+                    } catch (e) {
+                      console.log("Not a family account, proceeding with single check-in");
+                    }
+                    
+                    // Step 3: Single member check-in
+                    const checkinRes = await fetch(`${API_URL}/checkin`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ email: memberEmail }),
+                    });
+                    
+                    if (checkinRes.ok) {
+                      const checkinData = await checkinRes.json();
+                      localStorage.setItem("member_email", memberEmail);
+                      localStorage.setItem("member_id", memberId);
+                      setMemberEmail(memberEmail);
+                      localStorage.removeItem("family_members"); // Clear family data for single users
+                      setStatus("success");
+                      setMessage(`${nameToLookup}: Check-in confirmed`);
+                    } else {
+                      const err = await checkinRes.json();
                       setStatus("error");
-                      setMessage("Network error. Please try again.");
+                      setMessage(err.detail || "Check-in failed.");
                     }
-                  } else {
-                    // Use single member registration (existing logic)
-                    let results: string[] = [];
-                    for (const [idx, name] of allNames.entries()) {
-                      try {
-                        const res = await fetch(`${API_URL}/member`, {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ email: formEmail, name }),
-                        });
-                        if (res.ok) {
-                          const data = await res.json();
-                          if (idx === 0) {
-                            localStorage.setItem("member_email", formEmail);
-                            setMemberEmail(formEmail);
-                            if (data.id && isValidUUID(data.id)) setMemberId(data.id);
-                          }
-                          // Check in
-                          const checkinRes = await fetch(`${API_URL}/checkin`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ email: formEmail }),
-                          });
-                          if (checkinRes.ok) {
-                            results.push(`${name}: Check-in confirmed`);
-                          } else {
-                            const err = await checkinRes.json();
-                            results.push(`${name}: Check-in failed (${err.detail || "error"})`);
-                          }
-                        } else {
-                          const err = await res.json();
-                          results.push(`${name}: Registration failed (${err.detail || "error"})`);
-                        }
-                      } catch {
-                        results.push(`${name}: Network error`);
-                      }
-                    }
-                    setStatus("success");
-                    setMessage(results.join("\n"));
+                    
+                  } catch (error) {
+                    console.error("Error during name lookup and check-in:", error);
+                    setStatus("error");
+                    setMessage("Network error. Please try again.");
                   }
                 }}
               >

@@ -773,6 +773,32 @@ async def get_member_stats(request: Request, member_id: str, db: Session = Depen
     
     return stats 
 
+@app.post("/member/lookup-by-name")
+@limiter.limit("10/minute")
+async def lookup_member_by_name(request: Request, data: dict = Body(...), db: Session = Depends(get_db)):
+    """Look up a member by their name for check-in purposes"""
+    
+    name = data.get("name", "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Name is required")
+    
+    # Search for member by name (case-insensitive, trimmed)
+    member = db.query(models.Member).filter(
+        func.lower(func.trim(models.Member.name)) == func.lower(name),
+        models.Member.deleted_at.is_(None)
+    ).first()
+    
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    logger.info("Member lookup by name", name=name, member_id=str(member.id), email=member.email)
+    
+    return {
+        "id": str(member.id),
+        "email": member.email,
+        "name": member.name
+    }
+
 @app.put("/member/{member_id}")
 @limiter.limit("5/minute")
 async def update_member(request: Request, member_id: str, update: models.MemberUpdate, db: Session = Depends(get_db)):
