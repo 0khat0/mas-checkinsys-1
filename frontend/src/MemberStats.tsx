@@ -48,6 +48,12 @@ function MemberStats({ memberId }: Props) {
   const [familyLoading, setFamilyLoading] = useState(false);
   const [familyError, setFamilyError] = useState('');
 
+  // Add member form state
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [newMemberName, setNewMemberName] = useState("");
+  const [addMemberError, setAddMemberError] = useState("");
+  const [addMemberLoading, setAddMemberLoading] = useState(false);
+
   useEffect(() => {
     // Check if this is a family account
     const savedFamilyMembers = localStorage.getItem('family_members');
@@ -284,6 +290,44 @@ function MemberStats({ memberId }: Props) {
     }
   };
 
+  // Add member handler
+  const handleAddMember = async () => {
+    setAddMemberError("");
+    if (!/^\s*\S+\s+\S+/.test(newMemberName.trim())) {
+      setAddMemberError("Please enter a full name (first and last).");
+      return;
+    }
+    setAddMemberLoading(true);
+    try {
+      const API_URL = getApiUrl();
+      const memberEmail = localStorage.getItem("member_email");
+      if (!memberEmail) {
+        setAddMemberError("No family email found. Please check in again.");
+        setAddMemberLoading(false);
+        return;
+      }
+      const res = await fetch(`${API_URL}/member`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: memberEmail, name: newMemberName.trim() }),
+      });
+      if (res.ok) {
+        setShowAddMember(false);
+        setNewMemberName("");
+        setAddMemberError("");
+        // Refresh family members
+        fetchFamilyMembers();
+      } else {
+        const err = await res.json();
+        setAddMemberError(err.detail || "Failed to add member.");
+      }
+    } catch {
+      setAddMemberError("Network error. Please try again.");
+    } finally {
+      setAddMemberLoading(false);
+    }
+  };
+
   useEffect(() => {
     localStorage.setItem('checkin_goal', goal.toString());
   }, [goal]);
@@ -348,6 +392,48 @@ function MemberStats({ memberId }: Props) {
                 <h2 className="text-2xl font-extrabold text-white">Family Members</h2>
               </div>
               <div className="w-16 h-1 rounded-full bg-gradient-to-r from-purple-500 to-purple-700" />
+            </div>
+            {/* Add Member Button and Form */}
+            <div className="mb-4">
+              {showAddMember ? (
+                <form
+                  className="flex flex-col sm:flex-row gap-2 items-center"
+                  onSubmit={e => { e.preventDefault(); handleAddMember(); }}
+                >
+                  <input
+                    className="input-field flex-1"
+                    placeholder="Enter new member's full name"
+                    type="text"
+                    value={newMemberName}
+                    onChange={e => setNewMemberName(e.target.value)}
+                    required
+                    disabled={addMemberLoading}
+                  />
+                  <button
+                    type="submit"
+                    className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors duration-200"
+                    disabled={addMemberLoading}
+                  >
+                    {addMemberLoading ? "Adding..." : "Add"}
+                  </button>
+                  <button
+                    type="button"
+                    className="bg-gray-600 hover:bg-gray-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors duration-200"
+                    onClick={() => { setShowAddMember(false); setNewMemberName(""); setAddMemberError(""); }}
+                    disabled={addMemberLoading}
+                  >
+                    Cancel
+                  </button>
+                </form>
+              ) : (
+                <button
+                  className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2 rounded-lg transition-colors duration-200"
+                  onClick={() => setShowAddMember(true)}
+                >
+                  + Add Member
+                </button>
+              )}
+              {addMemberError && <div className="text-red-400 mt-2 text-sm">{addMemberError}</div>}
             </div>
             
             {familyLoading ? (

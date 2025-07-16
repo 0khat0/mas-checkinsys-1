@@ -538,7 +538,8 @@ async def register_family(request: Request, family_data: models.FamilyRegistrati
     return {
         "message": f"Family registered successfully. {len(members)} members checked in.",
         "members": [models.MemberOut.model_validate(m) for m in created_members],
-        "checkins": len(checkins)
+        "checkins": len(checkins),
+        "member_ids": [str(m.id) for m in created_members]  # NEW: include member_ids for frontend
     }
 
 @app.get("/family/members/{email}")
@@ -620,6 +621,52 @@ async def family_checkin(request: Request, checkin_data: models.FamilyCheckin, d
     return {
         "message": "Family check-in completed",
         "results": results
+    }
+
+@app.get("/family/checkin-status/{email}")
+@limiter.limit("10/minute")
+async def family_checkin_status(request: Request, email: str, db: Session = Depends(get_db)):
+    """Return which family members have checked in and which have not for the current day and AM/PM period."""
+    # Get all active family members
+    members = db.query(models.Member).filter(
+        models.Member.email == email,
+        models.Member.deleted_at.is_(None)
+    ).all()
+    if not members:
+        raise HTTPException(status_code=404, detail="No family members found with this email")
+
+    # Get Toronto time and AM/PM period
+    toronto_tz = pytz.timezone('America/Toronto')
+    now = datetime.now(toronto_tz)
+    today = now.date()
+    hour = now.hour
+    is_am = hour < 12
+    if is_am:
+        period_start = toronto_tz.localize(datetime.combine(today, time(0, 0, 0)))
+        period_end = toronto_tz.localize(datetime.combine(today, time(11, 59, 59)))
+    else:
+        period_start = toronto_tz.localize(datetime.combine(today, time(12, 0, 0)))
+        period_end = toronto_tz.localize(datetime.combine(today, time(23, 59, 59)))
+    period_start_utc = period_start.astimezone(pytz.UTC)
+    period_end_utc = period_end.astimezone(pytz.UTC)
+
+    checked_in = []
+    not_checked_in = []
+    for member in members:
+        existing = db.query(models.Checkin).filter(
+            models.Checkin.member_id == member.id,
+            models.Checkin.timestamp >= period_start_utc,
+            models.Checkin.timestamp <= period_end_utc
+        ).first()
+        if existing:
+            checked_in.append(member.name)
+        else:
+            not_checked_in.append(member.name)
+    return {
+        "checked_in": checked_in,
+        "not_checked_in": not_checked_in,
+        "period": "AM" if is_am else "PM",
+        "date": today.isoformat()
     }
 
 @app.get("/members")
