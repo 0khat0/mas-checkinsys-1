@@ -351,6 +351,8 @@ function MemberCheckin() {
                   e.preventDefault();
                   // Validate all names
                   const allNames = [formName, ...familyNames];
+                  console.log("🔍 Starting returning user flow with names:", allNames);
+                  
                   for (const name of allNames) {
                     if (!/^\s*\S+\s+\S+/.test(name.trim())) {
                       setMessage("Please enter a full name (first and last) for each member.");
@@ -360,140 +362,153 @@ function MemberCheckin() {
                   setStatus("loading");
                   setMessage("");
                   const API_URL = getApiUrl();
-                  let memberEmailToUse = formEmail.trim();
+                  
                   try {
-                    // Try to look up the first member by name
-                    const nameToLookup = allNames[0].trim();
-                    const lookupRes = await fetch(`${API_URL}/member/lookup-by-name`, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ name: nameToLookup }),
-                    });
-                    if (lookupRes.ok) {
-                      // Member exists, treat as check-in flow
-                      const memberData = await lookupRes.json();
-                      const memberEmail = memberData.email;
-                      const memberId = memberData.id;
-                      // Check if this is a family account
-                      let familyMemberNames = [];
+                    // STEP 1: Check which names exist and which don't
+                    const existingMembers = [];
+                    const newMembers = [];
+                    let familyEmail = null;
+                    
+                    console.log("🔍 STEP 1: Checking each name...");
+                    for (const name of allNames) {
+                      console.log(`🔍 Checking name: "${name.trim()}"`);
                       try {
-                        const familyRes = await fetch(`${API_URL}/family/members/${encodeURIComponent(memberEmail)}`);
-                        if (familyRes.ok) {
-                          const familyData = await familyRes.json();
-                          if (Array.isArray(familyData) && familyData.length > 1) {
-                            familyMemberNames = familyData.map((m) => m.name);
-                            localStorage.setItem("family_members", JSON.stringify(familyMemberNames));
-                            localStorage.setItem("member_email", memberEmail);
-                            localStorage.setItem("member_id", memberId);
-                            setMemberEmail(memberEmail);
-                            setFamilyMembers(familyMemberNames);
-                            // Always check in the entered family member
-                            const familyCheckinRes = await fetch(`${API_URL}/family/checkin`, {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({
-                                email: memberEmail,
-                                member_names: [memberData.name],
-                              }),
-                            });
-                            if (familyCheckinRes.ok) {
-                              setStatus("success");
-                              setMessage("All family members have checked in for this period!");
-                            } else {
-                              const err = await familyCheckinRes.json();
-                              setStatus("error");
-                              setMessage(err.detail || "Family check-in failed.");
-                            }
-                            return;
-                          }
-                        }
-                      } catch {}
-                      // Not a family, just check in
-                      const checkinRes = await fetch(`${API_URL}/checkin`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ email: memberEmail }),
-                      });
-                      if (checkinRes.ok) {
-                        await checkinRes.json();
-                        if (memberId && isValidUUID(memberId)) {
-                          setMemberId(memberId);
-                        }
-                        setStatus("success");
-                        setMessage("Check-in successful! Welcome back.");
-                      } else {
-                        const err = await checkinRes.json();
-                        setStatus("error");
-                        setMessage(err.detail || "Check-in failed.");
-                      }
-                      return;
-                    }
-                    // If not found, proceed to registration
-                    if (isFamily && allNames.length > 1) {
-                      // Family registration
-                      const regRes = await fetch(`${API_URL}/family/register`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          email: memberEmailToUse,
-                          members: allNames.map((name) => ({ name: name.trim() })),
-                        }),
-                      });
-                      if (regRes.ok) {
-                        const regData = await regRes.json();
-                        // After successful family registration or check-in, always set familyMembers to the registered/checked-in names and do not clear it before rendering the green message.
-                        localStorage.setItem("family_members", JSON.stringify(regData.members.map((m:any) => m.name)));
-                        localStorage.setItem("member_email", memberEmailToUse);
-                        if (regData.member_ids && regData.member_ids.length > 0) {
-                          localStorage.setItem("member_id", regData.member_ids[0]);
-                        }
-                        setMemberEmail(memberEmailToUse);
-                        setFamilyMembers(regData.members.map((m:any) => m.name));
-                        // In the family registration flow, after successful registration, set only the state for the family green message and do not set a separate registration success message.
-                        setStatus("success");
-                        setMessage("All family members have checked in for this period!");
-                        return;
-                      } else {
-                        const err = await regRes.json();
-                        setStatus("error");
-                        setMessage(err.detail || "Family registration failed.");
-                        return;
-                      }
-                    } else {
-                      // Single member registration
-                      const regRes = await fetch(`${API_URL}/member`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ email: memberEmailToUse, name: allNames[0].trim() }),
-                      });
-                      if (regRes.ok) {
-                        const regData = await regRes.json();
-                        localStorage.setItem("member_email", memberEmailToUse);
-                        localStorage.setItem("member_id", regData.id);
-                        setMemberEmail(memberEmailToUse);
-                        localStorage.removeItem("family_members");
-                        // Immediately check in the new member
-                        const checkinRes = await fetch(`${API_URL}/checkin`, {
+                        const lookupRes = await fetch(`${API_URL}/member/lookup-by-name`, {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ email: memberEmailToUse }),
+                          body: JSON.stringify({ name: name.trim() }),
                         });
-                        if (checkinRes.ok) {
-                          setStatus("success");
-                          setMessage("Registration and check-in successful!");
+                        if (lookupRes.ok) {
+                          const memberData = await lookupRes.json();
+                          console.log(`✅ Found existing member:`, memberData);
+                          existingMembers.push({
+                            name: name.trim(),
+                            email: memberData.email,
+                            id: memberData.id
+                          });
+                          // Use the first found member's email as the family email
+                          if (!familyEmail) {
+                            familyEmail = memberData.email;
+                            console.log(`📧 Set family email to: ${familyEmail}`);
+                          }
                         } else {
-                          setStatus("error");
-                          setMessage("Registration succeeded but check-in failed. Please try checking in again.");
+                          console.log(`❌ Name not found: "${name.trim()}" - adding to new members`);
+                          newMembers.push(name.trim());
                         }
-                        return;
-                      } else {
-                        const err = await regRes.json();
-                        setStatus("error");
-                        setMessage(err.detail || "Registration failed.");
-                        return;
+                      } catch (error) {
+                        console.log(`❌ Error looking up "${name.trim()}":`, error);
+                        newMembers.push(name.trim());
                       }
                     }
+                    
+                    console.log("🔍 STEP 1 RESULTS:");
+                    console.log("- Existing members:", existingMembers);
+                    console.log("- New members:", newMembers);
+                    console.log("- Family email:", familyEmail);
+                    
+                    // If no existing members found, show error
+                    if (existingMembers.length === 0) {
+                      console.log("❌ No existing members found, redirecting to register");
+                      setStatus("register");
+                      setFormName("");
+                      setFamilyNames([]);
+                      setMessage("No existing members found with these names. Please register instead.");
+                      return;
+                    }
+                    
+                    // STEP 2: Add new members to the existing family (if any)
+                    if (newMembers.length > 0 && familyEmail) {
+                      console.log("🔍 STEP 2: Adding new members to family...");
+                      console.log(`📝 Adding ${newMembers.length} new members to email: ${familyEmail}`);
+                      try {
+                        const addRes = await fetch(`${API_URL}/family/add-members`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            email: familyEmail,
+                            new_members: newMembers,
+                          }),
+                        });
+                        if (addRes.ok) {
+                          const addResult = await addRes.json();
+                          console.log("✅ Successfully added new members:", addResult);
+                        } else {
+                          const err = await addRes.json();
+                          console.error("❌ Failed to add new members:", err.detail);
+                        }
+                      } catch (error) {
+                        console.error("❌ Error adding new members:", error);
+                      }
+                    } else {
+                      console.log("🔍 STEP 2: Skipped - no new members to add");
+                    }
+                    
+                    // STEP 3: Get updated family info and set up localStorage
+                    console.log("🔍 STEP 3: Getting updated family info...");
+                    try {
+                      const familyRes = await fetch(`${API_URL}/family/members/${encodeURIComponent(familyEmail)}`);
+                      if (familyRes.ok) {
+                        const familyData = await familyRes.json();
+                        const familyMemberNames = familyData.map((m: any) => m.name);
+                        console.log("✅ Updated family members:", familyMemberNames);
+                        
+                        // Set up localStorage
+                        localStorage.setItem("family_members", JSON.stringify(familyMemberNames));
+                        localStorage.setItem("member_email", familyEmail);
+                        localStorage.setItem("member_id", existingMembers[0].id);
+                        setMemberEmail(familyEmail);
+                        setFamilyMembers(familyMemberNames);
+                        console.log("✅ localStorage updated");
+                        
+                        // STEP 4: Check in all entered members using family check-in
+                        // Only check in members that actually exist in the family now
+                        const membersToCheckIn = allNames.filter(name => 
+                           familyMemberNames.some((familyName: string) => 
+                             familyName.toLowerCase().trim() === name.toLowerCase().trim()
+                           )
+                         );
+                        
+                        console.log("🔍 STEP 4: Checking in members...");
+                        console.log("- All entered names:", allNames);
+                        console.log("- Family member names:", familyMemberNames);
+                        console.log("- Members to check in:", membersToCheckIn);
+                        
+                        const familyCheckinRes = await fetch(`${API_URL}/family/checkin`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            email: familyEmail,
+                            member_names: membersToCheckIn,
+                          }),
+                        });
+                        
+                        if (familyCheckinRes.ok) {
+                          const checkinResult = await familyCheckinRes.json();
+                          console.log("✅ Check-in successful:", checkinResult);
+                          setStatus("success");
+                          if (familyMemberNames.length > 1) {
+                            setMessage("All family members have checked in for this period!");
+                          } else {
+                            setMessage("Check-in successful! Welcome back.");
+                          }
+                        } else {
+                          const err = await familyCheckinRes.json();
+                          console.error("❌ Check-in failed:", err);
+                          setStatus("error");
+                          setMessage(err.detail || "Check-in failed.");
+                        }
+                      } else {
+                        console.error("❌ Failed to load family information");
+                        setStatus("error");
+                        setMessage("Failed to load family information.");
+                      }
+                    } catch (error) {
+                      console.error("❌ Network error loading family information:", error);
+                      setStatus("error");
+                      setMessage("Network error loading family information.");
+                    }
                   } catch (error) {
+                    console.error("❌ General network error:", error);
                     setStatus("error");
                     setMessage("Network error. Please try again.");
                   }
@@ -571,6 +586,8 @@ function MemberCheckin() {
                   e.preventDefault();
                   // Validate all names
                   const allNames = [formName, ...familyNames];
+                  console.log("🔍 Starting returning user flow with names:", allNames);
+                  
                   for (const name of allNames) {
                     if (!/^\s*\S+\s+\S+/.test(name.trim())) {
                       setMessage("Please enter a full name (first and last) for each member.");
@@ -580,88 +597,155 @@ function MemberCheckin() {
                   setStatus("loading");
                   setMessage("");
                   const API_URL = getApiUrl();
-                  let results: string[] = [];
-                  let anyNotFound = false;
-                  let firstMemberId = null;
-                  let firstMemberEmail = null;
-                  let familyMemberNames = [];
-
-                  for (const [idx, name] of allNames.entries()) {
-                    try {
-                      // Step 1: Look up member by name to get email and family info
-                      const lookupRes = await fetch(`${API_URL}/member/lookup-by-name`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ name: name.trim().replace(/\s+/g, ' ') }),
-                      });
-                      if (!lookupRes.ok) {
-                        results.push(`${name}: Not found`);
-                        anyNotFound = true;
-                        continue;
-                      }
-                      const memberData = await lookupRes.json();
-                      const memberEmail = memberData.email;
-                      const memberId = memberData.id;
-                      // Step 2: Check in with email
-                      const checkinRes = await fetch(`${API_URL}/checkin`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ email: memberEmail }),
-                      });
-                      if (checkinRes.ok) {
-                        await checkinRes.json();
-                        results.push(`${name}: Check-in confirmed`);
-                        if (idx === 0) {
-                          firstMemberId = memberId;
-                          firstMemberEmail = memberEmail;
+                  
+                  try {
+                    // STEP 1: Check which names exist and which don't
+                    const existingMembers = [];
+                    const newMembers = [];
+                    let familyEmail = null;
+                    
+                    console.log("🔍 STEP 1: Checking each name...");
+                    for (const name of allNames) {
+                      console.log(`🔍 Checking name: "${name.trim()}"`);
+                      try {
+                        const lookupRes = await fetch(`${API_URL}/member/lookup-by-name`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ name: name.trim() }),
+                        });
+                        if (lookupRes.ok) {
+                          const memberData = await lookupRes.json();
+                          console.log(`✅ Found existing member:`, memberData);
+                          existingMembers.push({
+                            name: name.trim(),
+                            email: memberData.email,
+                            id: memberData.id
+                          });
+                          // Use the first found member's email as the family email
+                          if (!familyEmail) {
+                            familyEmail = memberData.email;
+                            console.log(`📧 Set family email to: ${familyEmail}`);
+                          }
+                        } else {
+                          console.log(`❌ Name not found: "${name.trim()}" - adding to new members`);
+                          newMembers.push(name.trim());
                         }
-                      } else {
-                        results.push(`${name}: Check-in failed`);
-                        anyNotFound = true;
+                      } catch (error) {
+                        console.log(`❌ Error looking up "${name.trim()}":`, error);
+                        newMembers.push(name.trim());
                       }
-                    } catch {
-                      results.push(`${name}: Network error`);
                     }
-                  }
-
-                  // After all check-ins, check if this is a family account
-                  if (firstMemberEmail) {
+                    
+                    console.log("🔍 STEP 1 RESULTS:");
+                    console.log("- Existing members:", existingMembers);
+                    console.log("- New members:", newMembers);
+                    console.log("- Family email:", familyEmail);
+                    
+                    // If no existing members found, show error
+                    if (existingMembers.length === 0) {
+                      console.log("❌ No existing members found, redirecting to register");
+                      setStatus("register");
+                      setFormName("");
+                      setFamilyNames([]);
+                      setMessage("No existing members found with these names. Please register instead.");
+                      return;
+                    }
+                    
+                    // STEP 2: Add new members to the existing family (if any)
+                    if (newMembers.length > 0 && familyEmail) {
+                      console.log("🔍 STEP 2: Adding new members to family...");
+                      console.log(`📝 Adding ${newMembers.length} new members to email: ${familyEmail}`);
+                      try {
+                        const addRes = await fetch(`${API_URL}/family/add-members`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            email: familyEmail,
+                            new_members: newMembers,
+                          }),
+                        });
+                        if (addRes.ok) {
+                          const addResult = await addRes.json();
+                          console.log("✅ Successfully added new members:", addResult);
+                        } else {
+                          const err = await addRes.json();
+                          console.error("❌ Failed to add new members:", err.detail);
+                        }
+                      } catch (error) {
+                        console.error("❌ Error adding new members:", error);
+                      }
+                    } else {
+                      console.log("🔍 STEP 2: Skipped - no new members to add");
+                    }
+                    
+                    // STEP 3: Get updated family info and set up localStorage
+                    console.log("🔍 STEP 3: Getting updated family info...");
                     try {
-                      const familyRes = await fetch(`${API_URL}/family/members/${encodeURIComponent(firstMemberEmail)}`);
+                      const familyRes = await fetch(`${API_URL}/family/members/${encodeURIComponent(familyEmail)}`);
                       if (familyRes.ok) {
                         const familyData = await familyRes.json();
-                        if (Array.isArray(familyData) && familyData.length > 1) {
-                          familyMemberNames = familyData.map((m) => m.name);
-                          // Set member_id to the first member's id (primary)
-                          if (familyData[0]?.id && isValidUUID(familyData[0].id)) {
-                            firstMemberId = familyData[0].id;
+                        const familyMemberNames = familyData.map((m: any) => m.name);
+                        console.log("✅ Updated family members:", familyMemberNames);
+                        
+                        // Set up localStorage
+                        localStorage.setItem("family_members", JSON.stringify(familyMemberNames));
+                        localStorage.setItem("member_email", familyEmail);
+                        localStorage.setItem("member_id", existingMembers[0].id);
+                        setMemberEmail(familyEmail);
+                        setFamilyMembers(familyMemberNames);
+                        console.log("✅ localStorage updated");
+                        
+                        // STEP 4: Check in all entered members using family check-in
+                        // Only check in members that actually exist in the family now
+                        const membersToCheckIn = allNames.filter(name => 
+                           familyMemberNames.some((familyName: string) => 
+                             familyName.toLowerCase().trim() === name.toLowerCase().trim()
+                           )
+                         );
+                        
+                        console.log("🔍 STEP 4: Checking in members...");
+                        console.log("- All entered names:", allNames);
+                        console.log("- Family member names:", familyMemberNames);
+                        console.log("- Members to check in:", membersToCheckIn);
+                        
+                        const familyCheckinRes = await fetch(`${API_URL}/family/checkin`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            email: familyEmail,
+                            member_names: membersToCheckIn,
+                          }),
+                        });
+                        
+                        if (familyCheckinRes.ok) {
+                          const checkinResult = await familyCheckinRes.json();
+                          console.log("✅ Check-in successful:", checkinResult);
+                          setStatus("success");
+                          if (familyMemberNames.length > 1) {
+                            setMessage("All family members have checked in for this period!");
+                          } else {
+                            setMessage("Check-in successful! Welcome back.");
                           }
-                          // Update localStorage.family_members
-                          localStorage.setItem("family_members", JSON.stringify(familyMemberNames));
                         } else {
-                          // Not a family, clear family_members
-                          localStorage.removeItem("family_members");
+                          const err = await familyCheckinRes.json();
+                          console.error("❌ Check-in failed:", err);
+                          setStatus("error");
+                          setMessage(err.detail || "Check-in failed.");
                         }
+                      } else {
+                        console.error("❌ Failed to load family information");
+                        setStatus("error");
+                        setMessage("Failed to load family information.");
                       }
-                    } catch {
-                      // Ignore errors, fallback to single member
-                      localStorage.removeItem("family_members");
+                    } catch (error) {
+                      console.error("❌ Network error loading family information:", error);
+                      setStatus("error");
+                      setMessage("Network error loading family information.");
                     }
-                  }
-                  // Save to localStorage if found
-                  if (firstMemberId && firstMemberEmail) {
-                    localStorage.setItem("member_id", firstMemberId);
-                    localStorage.setItem("member_email", firstMemberEmail);
-                    setMemberEmail(firstMemberEmail);
-                  }
-                  if (anyNotFound) {
-                    setStatus("register"); // keep form open
-                    setFormName("");
-                    setFamilyNames([]);
-                    setMessage("Name not found. Please register or re-enter your name.");
-                  } else {
-                    setStatus("success");
-                    setMessage(results.join("\n"));
+                  } catch (error) {
+                    console.error("❌ General network error:", error);
+                    setStatus("error");
+                    setMessage("Network error. Please try again.");
                   }
                 }}
               >

@@ -891,6 +891,63 @@ async def restore_member(request: Request, member_id: str, db: Session = Depends
     
     return models.MemberOut.model_validate(member)
 
+@app.post("/family/add-members")
+@limiter.limit("10/minute")
+async def add_family_members(request: Request, add_data: dict, db: Session = Depends(get_db)):
+    """Add new members to an existing family account"""
+    email = add_data.get("email")
+    new_members = add_data.get("new_members", [])
+    
+    if not email or not new_members:
+        raise HTTPException(status_code=400, detail="Email and new members are required")
+    
+    # Verify the family exists
+    existing_family = db.query(models.Member).filter(
+        models.Member.email == email,
+        models.Member.deleted_at.is_(None)
+    ).first()
+    
+    if not existing_family:
+        raise HTTPException(status_code=404, detail="Family not found")
+    
+    # Check if any new member already exists with this email
+    existing_new_members = []
+    for member_name in new_members:
+        existing = db.query(models.Member).filter(
+            models.Member.email == email,
+            models.Member.name == member_name,
+            models.Member.deleted_at.is_(None)
+        ).first()
+        if existing:
+            existing_new_members.append(member_name)
+    
+    if existing_new_members:
+        raise HTTPException(status_code=409, detail=f"Members already exist in this family: {', '.join(existing_new_members)}")
+    
+    # Add new family members
+    created_members = []
+    for member_name in new_members:
+        member = models.Member(email=email, name=member_name)
+        db.add(member)
+        created_members.append(member)
+        MEMBER_COUNT.inc()
+    
+    db.commit()
+    
+    # Get all family members after addition
+    all_family_members = db.query(models.Member).filter(
+        models.Member.email == email,
+        models.Member.deleted_at.is_(None)
+    ).all()
+    
+    logger.info("Members added to family", email=email, new_members=new_members, total_family_size=len(all_family_members))
+    
+    return {
+        "message": f"Added {len(created_members)} new members to family",
+        "new_members": [models.MemberOut.model_validate(m) for m in created_members],
+        "all_family_members": [models.MemberOut.model_validate(m) for m in all_family_members]
+    }
+
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "changeme")
 JWT_SECRET = os.getenv("JWT_SECRET", "supersecretkey")
 JWT_ALGORITHM = "HS256"
