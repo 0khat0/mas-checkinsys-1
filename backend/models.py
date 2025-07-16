@@ -5,15 +5,16 @@ from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, List
 from database import Base
 
 class Member(Base):
     __tablename__ = "members"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    email = Column(String, unique=True, nullable=False, index=True)
+    email = Column(String, nullable=False, index=True)  # Removed unique=True to allow multiple members per email
     name = Column(String, nullable=False, index=True)
     active = Column(Boolean, default=True, index=True)
+    deleted_at = Column(DateTime(timezone=True), nullable=True, index=True)  # Soft delete support
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(pytz.UTC), index=True)
     checkins = relationship("Checkin", back_populates="member")
     
@@ -21,6 +22,7 @@ class Member(Base):
     __table_args__ = (
         Index('idx_member_email_active', 'email', 'active'),
         Index('idx_member_created_active', 'created_at', 'active'),
+        Index('idx_member_email_deleted', 'email', 'deleted_at'),  # For family queries
     )
 
 class Checkin(Base):
@@ -46,12 +48,29 @@ class MemberBase(BaseModel):
 class MemberCreate(MemberBase):
     pass
 
+class MemberUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+
 class MemberOut(MemberBase):
     id: uuid.UUID
     created_at: datetime
+    deleted_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
+
+# Family-specific schemas
+class FamilyMemberCreate(BaseModel):
+    name: str
+
+class FamilyRegistration(BaseModel):
+    email: str
+    members: List[FamilyMemberCreate]
+
+class FamilyCheckin(BaseModel):
+    email: str
+    member_names: List[str]  # Names of members to check in
 
 class CheckinBase(BaseModel):
     email: str

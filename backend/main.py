@@ -463,23 +463,163 @@ async def create_member(request: Request, member_data: dict, db: Session = Depen
     
     if not email or not name:
         raise HTTPException(status_code=400, detail="Email and name are required")
-
-    # Check if member exists
-    existing_member = db.query(models.Member).filter(models.Member.email == email).first()
-    if existing_member:
-        raise HTTPException(status_code=400, detail="Email already registered")
-
-    # Create member
+    
+    # Check if member already exists (not soft-deleted)
+    existing = db.query(models.Member).filter(
+        models.Member.email == email,
+        models.Member.name == name,
+        models.Member.deleted_at.is_(None)
+    ).first()
+    
+    if existing:
+        raise HTTPException(status_code=409, detail="Member already exists")
+    
     member = models.Member(email=email, name=name)
     db.add(member)
     db.commit()
     db.refresh(member)
+    
+    # Update metrics
+    MEMBER_COUNT.inc()
+    
+    logger.info("Member created", member_id=str(member.id), email=email, name=name)
+    
+    return models.MemberOut.model_validate(member)
 
+@app.post("/family/register")
+@limiter.limit("10/minute")
+async def register_family(request: Request, family_data: models.FamilyRegistration, db: Session = Depends(get_db)):
+    """Register multiple family members with one email and check them all in"""
+    email = family_data.email
+    members = family_data.members
+    
+    if not email or not members:
+        raise HTTPException(status_code=400, detail="Email and at least one member are required")
+    
+    # Check if any member already exists (not soft-deleted)
+    existing_members = []
+    for member_info in members:
+        existing = db.query(models.Member).filter(
+            models.Member.email == email,
+            models.Member.name == member_info.name,
+            models.Member.deleted_at.is_(None)
+        ).first()
+        if existing:
+            existing_members.append(member_info.name)
+    
+    if existing_members:
+        raise HTTPException(status_code=409, detail=f"Members already exist: {', '.join(existing_members)}")
+    
+    # Create all family members
+    created_members = []
+    for member_info in members:
+        member = models.Member(email=email, name=member_info.name)
+        db.add(member)
+        created_members.append(member)
+    
+    db.commit()
+    
+    # Check in all members
+    toronto_tz = pytz.timezone('America/Toronto')
+    now = datetime.now(toronto_tz)
+    checkins = []
+    
+    for member in created_members:
+        db.refresh(member)
+        checkin = models.Checkin(member_id=member.id)
+        db.add(checkin)
+        checkins.append(checkin)
+        CHECKIN_COUNT.inc()
+    
+    db.commit()
+    
+    logger.info("Family registered and checked in", email=email, member_count=len(members))
+    
     return {
-        "message": "Member created successfully",
-        "id": member.id,
-        "email": member.email,
-        "name": member.name
+        "message": f"Family registered successfully. {len(members)} members checked in.",
+        "members": [models.MemberOut.model_validate(m) for m in created_members],
+        "checkins": len(checkins)
+    }
+
+@app.get("/family/members/{email}")
+@limiter.limit("20/minute")
+async def get_family_members(request: Request, email: str, db: Session = Depends(get_db)):
+    """Get all family members by email (including soft-deleted)"""
+    members = db.query(models.Member).filter(
+        models.Member.email == email
+    ).all()
+    
+    if not members:
+        raise HTTPException(status_code=404, detail="No family members found with this email")
+    
+    return [models.MemberOut.model_validate(member) for member in members]
+
+@app.post("/family/checkin")
+@limiter.limit("5/minute")
+async def family_checkin(request: Request, checkin_data: models.FamilyCheckin, db: Session = Depends(get_db)):
+    """Check in selected family members"""
+    email = checkin_data.email
+    member_names = checkin_data.member_names
+    
+    if not email or not member_names:
+        raise HTTPException(status_code=400, detail="Email and member names are required")
+    
+    # Get Toronto time for AM/PM logic
+    toronto_tz = pytz.timezone('America/Toronto')
+    now = datetime.now(toronto_tz)
+    today = now.date()
+    hour = now.hour
+    is_am = hour < 12
+    
+    # Define AM/PM period
+    if is_am:
+        period_start = toronto_tz.localize(datetime.combine(today, time(0, 0, 0)))
+        period_end = toronto_tz.localize(datetime.combine(today, time(11, 59, 59)))
+    else:
+        period_start = toronto_tz.localize(datetime.combine(today, time(12, 0, 0)))
+        period_end = toronto_tz.localize(datetime.combine(today, time(23, 59, 59)))
+    
+    # Convert to UTC for DB query
+    period_start_utc = period_start.astimezone(pytz.UTC)
+    period_end_utc = period_end.astimezone(pytz.UTC)
+    
+    results = []
+    for name in member_names:
+        # Get member
+        member = db.query(models.Member).filter(
+            models.Member.email == email,
+            models.Member.name == name,
+            models.Member.deleted_at.is_(None)
+        ).first()
+        
+        if not member:
+            results.append(f"{name}: Member not found")
+            continue
+        
+        # Check if already checked in this period
+        existing = db.query(models.Checkin).filter(
+            models.Checkin.member_id == member.id,
+            models.Checkin.timestamp >= period_start_utc,
+            models.Checkin.timestamp <= period_end_utc
+        ).first()
+        
+        if existing:
+            results.append(f"{name}: Already checked in this {'AM' if is_am else 'PM'}")
+            continue
+        
+        # Create check-in
+        checkin = models.Checkin(member_id=member.id)
+        db.add(checkin)
+        CHECKIN_COUNT.inc()
+        results.append(f"{name}: Check-in successful")
+    
+    db.commit()
+    
+    logger.info("Family check-in completed", email=email, members=member_names)
+    
+    return {
+        "message": "Family check-in completed",
+        "results": results
     }
 
 @app.get("/members")
@@ -586,30 +726,97 @@ async def get_member_stats(request: Request, member_id: str, db: Session = Depen
 
 @app.put("/member/{member_id}")
 @limiter.limit("5/minute")
-async def update_member(request: Request, member_id: str, update: MemberUpdate, db: Session = Depends(get_db)):
+async def update_member(request: Request, member_id: str, update: models.MemberUpdate, db: Session = Depends(get_db)):
+    """Update member information"""
     # Validate UUID format
     if not is_valid_uuid(member_id):
         raise HTTPException(status_code=400, detail="Invalid member ID format")
     
-    member = db.query(models.Member).filter(models.Member.id == member_id).first()
+    # Get member
+    member = db.query(models.Member).filter(
+        models.Member.id == member_id,
+        models.Member.deleted_at.is_(None)
+    ).first()
+    
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
-    # Check if email is changing and if new email is already taken
-    if update.email != member.email:
-        existing = db.query(models.Member).filter(models.Member.email == update.email).first()
-        if existing:
-            raise HTTPException(status_code=400, detail="Email already registered")
-    # Use setattr to avoid linter errors with SQLAlchemy columns
-    setattr(member, 'name', update.name)
-    setattr(member, 'email', update.email)
+    
+    # Update fields
+    if update.name is not None:
+        setattr(member, 'name', update.name)
+    
+    if update.email is not None:
+        # If email is being changed, update all family members
+        old_email = member.email
+        new_email = update.email
+        
+        # Update all family members with the same email
+        family_members = db.query(models.Member).filter(
+            models.Member.email == old_email,
+            models.Member.deleted_at.is_(None)
+        ).all()
+        
+        for family_member in family_members:
+            setattr(family_member, 'email', new_email)
+        
+        logger.info("Family email updated", old_email=old_email, new_email=new_email, member_count=len(family_members))
+    
     db.commit()
     db.refresh(member)
-    return {
-        "id": str(member.id),
-        "name": member.name,
-        "email": member.email,
-        "created_at": member.created_at.isoformat()
-    }
+    
+    logger.info("Member updated", member_id=str(member.id))
+    
+    return models.MemberOut.model_validate(member)
+
+@app.delete("/member/{member_id}")
+@limiter.limit("5/minute")
+async def delete_member(request: Request, member_id: str, db: Session = Depends(get_db)):
+    """Soft delete a member"""
+    # Validate UUID format
+    if not is_valid_uuid(member_id):
+        raise HTTPException(status_code=400, detail="Invalid member ID format")
+    
+    # Get member
+    member = db.query(models.Member).filter(
+        models.Member.id == member_id,
+        models.Member.deleted_at.is_(None)
+    ).first()
+    
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    # Soft delete
+    setattr(member, 'deleted_at', datetime.now(pytz.UTC))
+    db.commit()
+    
+    logger.info("Member soft deleted", member_id=str(member.id), name=member.name, email=member.email)
+    
+    return {"message": "Member deleted successfully"}
+
+@app.post("/member/{member_id}/restore")
+@limiter.limit("5/minute")
+async def restore_member(request: Request, member_id: str, db: Session = Depends(get_db)):
+    """Restore a soft-deleted member"""
+    # Validate UUID format
+    if not is_valid_uuid(member_id):
+        raise HTTPException(status_code=400, detail="Invalid member ID format")
+    
+    # Get member
+    member = db.query(models.Member).filter(
+        models.Member.id == member_id,
+        models.Member.deleted_at.is_not(None)
+    ).first()
+    
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found or not deleted")
+    
+    # Restore
+    setattr(member, 'deleted_at', None)
+    db.commit()
+    
+    logger.info("Member restored", member_id=str(member.id), name=member.name, email=member.email)
+    
+    return models.MemberOut.model_validate(member)
 
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "changeme")
 JWT_SECRET = os.getenv("JWT_SECRET", "supersecretkey")

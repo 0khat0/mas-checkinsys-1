@@ -12,13 +12,19 @@ interface MemberStats {
   email?: string;
 }
 
+interface FamilyMember {
+  id: string;
+  name: string;
+  email: string;
+  is_deleted: boolean;
+  deleted_at?: string;
+}
+
 interface Props {
   memberId: string;
 }
 
 const DEFAULT_GOAL = 3;
-
-
 
 function MemberStats({ memberId }: Props) {
   const [stats, setStats] = useState<MemberStats | null>(null);
@@ -34,8 +40,26 @@ function MemberStats({ memberId }: Props) {
   const [editEmail, setEditEmail] = useState('');
   const [editError, setEditError] = useState('');
   const [editSuccess, setEditSuccess] = useState('');
+  
+  // Family member states
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+  const [selectedMemberId, setSelectedMemberId] = useState<string>(memberId);
+  const [isFamily, setIsFamily] = useState(false);
+  const [familyLoading, setFamilyLoading] = useState(false);
+  const [familyError, setFamilyError] = useState('');
 
   useEffect(() => {
+    // Check if this is a family account
+    const savedFamilyMembers = localStorage.getItem('family_members');
+    if (savedFamilyMembers) {
+      try {
+        const members = JSON.parse(savedFamilyMembers);
+        setIsFamily(members.length > 1);
+      } catch (e) {
+        console.error('Error parsing family members:', e);
+      }
+    }
+
     // Validate memberId before making API call
     if (!isValidUUID(memberId)) {
       setError('Invalid member ID. Please check in again.');
@@ -88,6 +112,178 @@ function MemberStats({ memberId }: Props) {
     fetchStats();
   }, [memberId]);
 
+  // Fetch family members if this is a family account
+  useEffect(() => {
+    if (isFamily) {
+      fetchFamilyMembers();
+    }
+  }, [isFamily]);
+
+  const fetchFamilyMembers = async () => {
+    setFamilyLoading(true);
+    setFamilyError('');
+    try {
+      const API_URL = getApiUrl();
+      const memberEmail = localStorage.getItem('member_email');
+      if (!memberEmail) {
+        setFamilyError('No email found. Please check in again.');
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/family/members/${encodeURIComponent(memberEmail)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setFamilyMembers(data || []);
+        // Update localStorage with current family members
+        const memberNames = data.map((m: FamilyMember) => m.name);
+        localStorage.setItem('family_members', JSON.stringify(memberNames));
+      } else {
+        setFamilyError('Failed to load family members.');
+      }
+    } catch (error) {
+      console.error('Error fetching family members:', error);
+      setFamilyError('Network error loading family members.');
+    } finally {
+      setFamilyLoading(false);
+    }
+  };
+
+  // Fetch stats for selected member
+  useEffect(() => {
+    if (selectedMemberId && selectedMemberId !== memberId) {
+      fetchMemberStats(selectedMemberId);
+    }
+  }, [selectedMemberId]);
+
+  const fetchMemberStats = async (memberIdToFetch: string) => {
+    try {
+      const API_URL = getApiUrl();
+      const response = await fetch(`${API_URL}/member/${memberIdToFetch}/stats`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data);
+        setEditName(data.name || '');
+        setEditEmail(data.email || '');
+        
+        if (data && data.check_in_dates && Array.isArray(data.check_in_dates)) {
+          const now = getTorontoTime();
+          const monday = getMondayOfCurrentWeekToronto(now);
+          
+          const mondayString = getTorontoDateString(monday);
+          const todayString = getTorontoDateString(now);
+          
+          const weekCheckins = data.check_in_dates.filter((d: string) => {
+            const checkinDateString = d.split('T')[0];
+            return checkinDateString >= mondayString && checkinDateString <= todayString;
+          }).length;
+          setWeeklyCheckins(weekCheckins);
+        } else {
+          setWeeklyCheckins(0);
+        }
+      } else {
+        setError('Failed to load member stats.');
+      }
+    } catch (error) {
+      console.error('Error fetching member stats:', error);
+      setError('Network error. Please try again.');
+    }
+  };
+
+  const handleMemberUpdate = async (memberIdToUpdate: string, name: string, email: string) => {
+    setEditError('');
+    setEditSuccess('');
+    try {
+      const API_URL = getApiUrl();
+      const res = await fetch(`${API_URL}/member/${memberIdToUpdate}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email }),
+      });
+      
+      if (res.ok) {
+        setEditSuccess('Profile updated successfully!');
+        setEditMode(false);
+        setStats((prev) => prev ? { ...prev, name, email } : prev);
+        
+        // Update family members list if this is a family
+        if (isFamily) {
+          setFamilyMembers(prev => prev.map(member => 
+            member.id === memberIdToUpdate 
+              ? { ...member, name, email }
+              : member
+          ));
+        }
+        
+        // Update localStorage email if this is the main member
+        if (memberIdToUpdate === memberId) {
+          localStorage.setItem("member_email", email);
+        }
+      } else {
+        const data = await res.json();
+        setEditError(data.detail || 'Failed to update profile.');
+      }
+    } catch (err) {
+      setEditError('Network error. Please try again.');
+    }
+  };
+
+  const handleMemberDelete = async (memberIdToDelete: string) => {
+    try {
+      const API_URL = getApiUrl();
+      const res = await fetch(`${API_URL}/member/${memberIdToDelete}/soft-delete`, {
+        method: "DELETE",
+      });
+      
+      if (res.ok) {
+        setEditSuccess('Member removed successfully!');
+        // Update family members list
+        setFamilyMembers(prev => prev.map(member => 
+          member.id === memberIdToDelete 
+            ? { ...member, is_deleted: true, deleted_at: new Date().toISOString() }
+            : member
+        ));
+        
+        // If we deleted the currently selected member, switch to another member
+        if (selectedMemberId === memberIdToDelete) {
+          const activeMembers = familyMembers.filter(m => !m.is_deleted);
+          if (activeMembers.length > 0) {
+            setSelectedMemberId(activeMembers[0].id);
+          }
+        }
+      } else {
+        const data = await res.json();
+        setEditError(data.detail || 'Failed to remove member.');
+      }
+    } catch (err) {
+      setEditError('Network error. Please try again.');
+    }
+  };
+
+  const handleMemberRestore = async (memberIdToRestore: string) => {
+    try {
+      const API_URL = getApiUrl();
+      const res = await fetch(`${API_URL}/member/${memberIdToRestore}/restore`, {
+        method: "POST",
+      });
+      
+      if (res.ok) {
+        setEditSuccess('Member restored successfully!');
+        // Update family members list
+        setFamilyMembers(prev => prev.map(member => 
+          member.id === memberIdToRestore 
+            ? { ...member, is_deleted: false, deleted_at: undefined }
+            : member
+        ));
+      } else {
+        const data = await res.json();
+        setEditError(data.detail || 'Failed to restore member.');
+      }
+    } catch (err) {
+      setEditError('Network error. Please try again.');
+    }
+  };
+
   useEffect(() => {
     localStorage.setItem('checkin_goal', goal.toString());
   }, [goal]);
@@ -129,18 +325,89 @@ function MemberStats({ memberId }: Props) {
   }
 
   const percent = Math.round((weeklyCheckins / goal) * 100);
+  const activeMembers = familyMembers.filter(m => !m.is_deleted);
+  const deletedMembers = familyMembers.filter(m => m.is_deleted);
+  const selectedMember = familyMembers.find(m => m.id === selectedMemberId);
 
   return (
     <div className="min-h-screen w-full bg-gray-900 font-poppins overflow-x-hidden">
       <div className="max-w-4xl mx-auto space-y-6">
-        {/* Logo and My Profile Section */}
-        {/* Remove the floating My Profile title and divider above the card. */}
-        {/* Inside the main profile card (motion.div), add at the top: */}
-        {/* <div className="mb-6"> */}
-        {/*   <h2 className="text-2xl font-extrabold text-white text-center">My Profile</h2> */}
-        {/*   <div className="w-16 h-1 rounded-full bg-gradient-to-r from-red-500 to-red-700 mx-auto mt-2 mb-2" /> */}
-        {/* </div> */}
-        {/* Then render the rest of the profile fields as before. */}
+        {/* Family Member Selection */}
+        {isFamily && (
+          <motion.div
+            className="bg-gray-800/50 rounded-xl p-6 backdrop-blur-sm border border-white/10"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="mb-6 flex flex-col items-start">
+              <div className="flex items-center gap-3 mb-1">
+                <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-lg">👨‍👩‍👧‍👦</span>
+                </div>
+                <h2 className="text-2xl font-extrabold text-white">Family Members</h2>
+              </div>
+              <div className="w-16 h-1 rounded-full bg-gradient-to-r from-purple-500 to-purple-700" />
+            </div>
+            
+            {familyLoading ? (
+              <div className="flex justify-center items-center h-20">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+              </div>
+            ) : familyError ? (
+              <div className="text-red-400 text-center">{familyError}</div>
+            ) : (
+              <div className="space-y-4">
+                {/* Active Members */}
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-3">Active Members</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {activeMembers.map((member) => (
+                      <button
+                        key={member.id}
+                        onClick={() => setSelectedMemberId(member.id)}
+                        className={`p-3 rounded-lg border-2 transition-all duration-200 text-left ${
+                          selectedMemberId === member.id
+                            ? 'border-purple-500 bg-purple-500/20'
+                            : 'border-gray-600 bg-gray-700/50 hover:border-gray-500'
+                        }`}
+                      >
+                        <div className="text-white font-medium">{member.name}</div>
+                        <div className="text-white/60 text-sm">{member.email}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Deleted Members (if any) */}
+                {deletedMembers.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-white/70 mb-3">Removed Members</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {deletedMembers.map((member) => (
+                        <div
+                          key={member.id}
+                          className="p-3 rounded-lg border-2 border-gray-600 bg-gray-700/30 text-left opacity-60"
+                        >
+                          <div className="text-white/70 font-medium">{member.name}</div>
+                          <div className="text-white/40 text-sm">{member.email}</div>
+                          <button
+                            onClick={() => handleMemberRestore(member.id)}
+                            className="mt-2 text-xs bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded transition-colors"
+                          >
+                            Restore
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* Profile Section */}
         <motion.div
           className="bg-gray-800/50 rounded-xl p-6 backdrop-blur-sm border border-white/10"
           initial={{ opacity: 0, y: 20 }}
@@ -154,36 +421,19 @@ function MemberStats({ memberId }: Props) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </div>
-              <h2 className="text-2xl font-extrabold text-white">My Profile</h2>
+              <h2 className="text-2xl font-extrabold text-white">
+                {isFamily ? `${selectedMember?.name || 'Member'}'s Profile` : 'My Profile'}
+              </h2>
             </div>
             <div className="w-16 h-1 rounded-full bg-gradient-to-r from-red-500 to-red-700" />
           </div>
+          
           {editMode ? (
             <form
               className="space-y-4"
               onSubmit={async (e) => {
                 e.preventDefault();
-                setEditError('');
-                setEditSuccess('');
-                try {
-                  const API_URL = getApiUrl();
-                  const res = await fetch(`${API_URL}/member/${memberId}`, {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ name: editName, email: editEmail }),
-                  });
-                  if (res.ok) {
-                    setEditSuccess('Profile updated successfully!');
-                    setEditMode(false);
-                    setStats((prev) => prev ? { ...prev, name: editName, email: editEmail } : prev);
-                    localStorage.setItem("member_email", editEmail);
-                  } else {
-                    const data = await res.json();
-                    setEditError(data.detail || 'Failed to update profile.');
-                  }
-                } catch (err) {
-                  setEditError('Network error. Please try again.');
-                }
+                await handleMemberUpdate(selectedMemberId, editName, editEmail);
               }}
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -249,15 +499,32 @@ function MemberStats({ memberId }: Props) {
                   <div className="text-white text-lg font-semibold">{stats.email || 'Not set'}</div>
                 </div>
               </div>
-              <button
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors duration-200 flex items-center gap-2"
-                onClick={() => setEditMode(true)}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Edit Profile
-              </button>
+              <div className="flex gap-3">
+                <button
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors duration-200 flex items-center gap-2"
+                  onClick={() => setEditMode(true)}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Edit Profile
+                </button>
+                {isFamily && selectedMember && (
+                  <button
+                    className="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors duration-200 flex items-center gap-2"
+                    onClick={() => {
+                      if (window.confirm(`Are you sure you want to remove ${selectedMember.name}? They can be restored later.`)) {
+                        handleMemberDelete(selectedMember.id);
+                      }
+                    }}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Remove Member
+                  </button>
+                )}
+              </div>
             </div>
           )}
           
@@ -281,8 +548,6 @@ function MemberStats({ memberId }: Props) {
           )}
         </motion.div>
 
-
-
         {/* Stats Section */}
         <motion.div 
           className="bg-gray-800/50 rounded-xl p-6 backdrop-blur-sm border border-white/10"
@@ -297,7 +562,9 @@ function MemberStats({ memberId }: Props) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
-              <h2 className="text-2xl font-extrabold text-white">My Stats</h2>
+              <h2 className="text-2xl font-extrabold text-white">
+                {isFamily ? `${selectedMember?.name || 'Member'}'s Stats` : 'My Stats'}
+              </h2>
             </div>
             <div className="w-16 h-1 rounded-full bg-gradient-to-r from-blue-500 to-blue-700" />
           </div>
