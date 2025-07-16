@@ -75,23 +75,26 @@ function MemberCheckin() {
   useEffect(() => {
     const savedEmail = localStorage.getItem("member_email");
     const savedMemberId = localStorage.getItem("member_id");
-    const savedFamilyMembers = localStorage.getItem("family_members"); // NEW: Get family members
-    
+    const savedFamilyMembers = localStorage.getItem("family_members");
+
     // Validate saved member_id if it exists
     if (savedMemberId && !isValidUUID(savedMemberId)) {
       localStorage.removeItem("member_id");
     }
-    
+
     if (savedEmail) {
       setMemberEmail(savedEmail);
-      
+
       // Check if this is a family
       if (savedFamilyMembers) {
         try {
           const members = JSON.parse(savedFamilyMembers);
           setFamilyMembers(members);
           if (members.length > 1) {
-            // This is a family - don't auto check-in, show member selection
+            // Always fetch check-in status for family
+            fetchFamilyCheckinStatus(savedEmail).then(() => {
+              // The notCheckedInMembers state will be set by fetchFamilyCheckinStatus
+            });
             setStatus("register");
             setMessage("Select which family members are here today:");
             return;
@@ -101,7 +104,7 @@ function MemberCheckin() {
           localStorage.removeItem("family_members");
         }
       }
-      
+
       // Single member or family with only one member - proceed with auto check-in
       setStatus("checking-in");
     } else {
@@ -286,119 +289,105 @@ function MemberCheckin() {
             </AnimatePresence>
             {/* Family Member Selection for Returning Families */}
             <AnimatePresence>
-              {status === "register" && familyMembers.length > 1 && (
-                checkinStatusLoading ? (
-                  <div className="w-full max-w-md flex justify-center items-center h-32">
-                    <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-red-500"></div>
-                  </div>
-                ) : notCheckedInMembers.length === 0 ? null : (
-                  <motion.div
-                    className="w-full max-w-md space-y-6"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <div className="glass-card space-y-6 p-6">
-                      <div className="text-center">
-                        <h3 className="text-xl font-semibold text-white mb-2">👨‍👩‍👧‍👦 Family Check-in</h3>
-                        <p className="text-white/70 mb-4">Select which family members are here today (not yet checked in):</p>
-                      </div>
-                      <div className="space-y-3">
-                        {notCheckedInMembers.map((memberName) => (
-                          <label key={memberName} className="flex items-center space-x-3 cursor-pointer p-3 rounded-lg hover:bg-white/5 transition-colors">
-                            <input
-                              type="checkbox"
-                              checked={selectedFamilyMembers.includes(memberName)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedFamilyMembers(prev => [...prev, memberName]);
-                                } else {
-                                  setSelectedFamilyMembers(prev => prev.filter(name => name !== memberName));
-                                }
-                              }}
-                              className="w-5 h-5 text-red-600 bg-gray-700 border-gray-600 rounded focus:ring-red-500 focus:ring-2"
-                            />
-                            <span className="text-white font-medium">{memberName}</span>
-                          </label>
-                        ))}
-                      </div>
-                      <div className="flex gap-3">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedFamilyMembers(notCheckedInMembers); // Select all
-                          }}
-                          className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
-                        >
-                          Select All
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedFamilyMembers([]); // Clear all
-                          }}
-                          className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
-                        >
-                          Clear All
-                        </button>
-                      </div>
+              {status === "register" && familyMembers.length > 1 && notCheckedInMembers.length > 0 && !checkinStatusLoading && (
+                <motion.div
+                  className="w-full max-w-md space-y-6"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="glass-card space-y-6 p-6">
+                    <div className="text-center">
+                      <h3 className="text-xl font-semibold text-white mb-2">👨‍👩‍��‍👦 Family Check-in</h3>
+                      <p className="text-white/70 mb-4">Select which family members are here today (not yet checked in):</p>
+                    </div>
+                    <div className="space-y-3">
+                      {notCheckedInMembers.map((memberName) => (
+                        <label key={memberName} className="flex items-center space-x-3 cursor-pointer p-3 rounded-lg hover:bg-white/5 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={selectedFamilyMembers.includes(memberName)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedFamilyMembers(prev => [...prev, memberName]);
+                              } else {
+                                setSelectedFamilyMembers(prev => prev.filter(name => name !== memberName));
+                              }
+                            }}
+                            className="w-5 h-5 text-red-600 bg-gray-700 border-gray-600 rounded focus:ring-red-500 focus:ring-2"
+                          />
+                          <span className="text-white font-medium">{memberName}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <div className="flex gap-3">
                       <button
-                        onClick={async () => {
-                          if (selectedFamilyMembers.length === 0) {
-                            setMessage("Please select at least one family member.");
-                            return;
-                          }
-                          setStatus("loading");
-                          setMessage("");
-                          try {
-                            const API_URL = getApiUrl();
-                            const checkinData = {
-                              email: memberEmail!,
-                              member_names: selectedFamilyMembers
-                            };
-                            const res = await fetch(`${API_URL}/family/checkin`, {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify(checkinData),
-                            });
-                            if (res.ok) {
-                              const data = await res.json();
-                              setStatus("success");
-                              setMessage(data.message);
-                              setSelectedFamilyMembers([]);
-                              // Refresh check-in status after check-in
-                              fetchFamilyCheckinStatus(memberEmail!);
-                            } else {
-                              const err = await res.json();
-                              setStatus("error");
-                              setMessage(err.detail || "Family check-in failed.");
-                            }
-                          } catch {
-                            setStatus("error");
-                            setMessage("Network error. Please try again.");
-                          }
+                        type="button"
+                        onClick={() => {
+                          setSelectedFamilyMembers(notCheckedInMembers); // Select all
                         }}
-                        disabled={selectedFamilyMembers.length === 0}
-                        className="w-full bg-gradient-to-r from-red-700 via-red-500 to-pink-500 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-red-700 transition-all duration-300 shadow-lg hover:shadow-black/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
                       >
-                        Check In Selected Members ({selectedFamilyMembers.length})
+                        Select All
                       </button>
                       <button
                         type="button"
                         onClick={() => {
-                          setStatus("register");
-                          setFamilyMembers([]);
-                          setSelectedFamilyMembers([]);
-                          setMessage("");
+                          setSelectedFamilyMembers([]); // Clear all
                         }}
-                        className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                        className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
                       >
-                        Manual Entry Instead
+                        Clear All
                       </button>
                     </div>
-                  </motion.div>
-                )
+                    <button
+                      onClick={async () => {
+                        if (selectedFamilyMembers.length === 0) {
+                          setMessage("Please select at least one family member.");
+                          return;
+                        }
+                        setStatus("loading");
+                        setMessage("");
+                        try {
+                          const API_URL = getApiUrl();
+                          const checkinData = {
+                            email: memberEmail!,
+                            member_names: selectedFamilyMembers
+                          };
+                          const res = await fetch(`${API_URL}/family/checkin`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(checkinData),
+                          });
+                          if (res.ok) {
+                            const data = await res.json();
+                            setStatus("success");
+                            setMessage(data.message);
+                            setSelectedFamilyMembers([]);
+                            // Refresh check-in status after check-in
+                            await fetchFamilyCheckinStatus(memberEmail!);
+                            // If there are still unchecked members, set status back to register to allow more check-ins
+                            if (notCheckedInMembers.length > selectedFamilyMembers.length) {
+                              setStatus("register");
+                            }
+                          } else {
+                            const err = await res.json();
+                            setStatus("error");
+                            setMessage(err.detail || "Family check-in failed.");
+                          }
+                        } catch {
+                          setStatus("error");
+                          setMessage("Network error. Please try again.");
+                        }
+                      }}
+                      disabled={selectedFamilyMembers.length === 0}
+                      className="w-full bg-gradient-to-r from-red-700 via-red-500 to-pink-500 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-red-700 transition-all duration-300 shadow-lg hover:shadow-black/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Check In Selected Members ({selectedFamilyMembers.length})
+                    </button>
+                  </div>
+                </motion.div>
               )}
             </AnimatePresence>
             {/* Registration or Check-In by Name Form */}
@@ -598,6 +587,8 @@ function MemberCheckin() {
                     let anyNotFound = false;
                     let firstMemberId = null;
                     let firstMemberEmail = null;
+                    let isFamilyAccount = false;
+                    let familyMemberNames = [];
                     for (const name of allNames) {
                       try {
                         const res = await fetch(`${API_URL}/checkin/by-name`, {
@@ -626,6 +617,31 @@ function MemberCheckin() {
                         }
                       } catch {
                         results.push(`${name}: Network error`);
+                      }
+                    }
+                    // After all check-ins, check if this is a family account
+                    if (firstMemberEmail) {
+                      try {
+                        const familyRes = await fetch(`${API_URL}/family/members/${encodeURIComponent(firstMemberEmail)}`);
+                        if (familyRes.ok) {
+                          const familyData = await familyRes.json();
+                          if (Array.isArray(familyData) && familyData.length > 1) {
+                            isFamilyAccount = true;
+                            familyMemberNames = familyData.map((m) => m.name);
+                            // Set member_id to the first member's id (primary)
+                            if (familyData[0]?.id && isValidUUID(familyData[0].id)) {
+                              firstMemberId = familyData[0].id;
+                            }
+                            // Update localStorage.family_members
+                            localStorage.setItem("family_members", JSON.stringify(familyMemberNames));
+                          } else {
+                            // Not a family, clear family_members
+                            localStorage.removeItem("family_members");
+                          }
+                        }
+                      } catch {
+                        // Ignore errors, fallback to single member
+                        localStorage.removeItem("family_members");
                       }
                     }
                     // Save to localStorage if found
