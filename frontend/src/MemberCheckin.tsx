@@ -595,7 +595,7 @@ function MemberCheckin() {
                         body: JSON.stringify({ email: memberEmail }),
                       });
                       if (checkinRes.ok) {
-                        const data = await checkinRes.json();
+                        await checkinRes.json();
                         results.push(`${name}: Check-in confirmed`);
                         if (idx === 0) {
                           firstMemberId = memberId;
