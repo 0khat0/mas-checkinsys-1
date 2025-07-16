@@ -208,8 +208,8 @@ function MemberCheckin() {
             <div className="h-2 rounded-full animated-accent-bar shadow-md mt-2 w-full" />
           </div>
         </motion.div>
-        {/* SUCCESS STATE: All family members checked in - ONLY show green message */}
-        {status === "register" && familyMembers.length > 1 && notCheckedInMembers.length === 0 && !checkinStatusLoading && (
+        {/* SUCCESS STATE: All family members checked in - ONLY show green message for family */}
+        {status === "success" && familyMembers.length > 1 && (
           <motion.div
             className="w-full max-w-md"
             initial={{ opacity: 0, y: -10 }}
@@ -222,8 +222,7 @@ function MemberCheckin() {
             </div>
           </motion.div>
         )}
-        
-        {/* SUCCESS STATE: Single user after check-in - ONLY show green message */}
+        {/* SUCCESS STATE: Single user after check-in - ONLY show green message for single */}
         {status === "success" && (familyMembers.length <= 1 || !familyMembers.length) && (
           <motion.div
             className="w-full max-w-md"
@@ -347,77 +346,143 @@ function MemberCheckin() {
                   setStatus("loading");
                   setMessage("");
                   const API_URL = getApiUrl();
-                  
-                  // Step 1: Look up member by name to get email and family info
+                  let memberEmailToUse = formEmail.trim();
+                  let memberIdToUse = null;
+                  let familyMemberNames = [];
                   try {
-                    const nameToLookup = allNames[0].trim(); // Use the first name entered
+                    // Try to look up the first member by name
+                    const nameToLookup = allNames[0].trim();
                     const lookupRes = await fetch(`${API_URL}/member/lookup-by-name`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ name: nameToLookup }),
                     });
-                    
-                    if (!lookupRes.ok) {
-                      setStatus("register");
-                      setFormName("");
-                      setFamilyNames([]);
-                      setMessage("Name not found. Please register or re-enter your name.");
+                    if (lookupRes.ok) {
+                      // Member exists, treat as check-in flow
+                      const memberData = await lookupRes.json();
+                      const memberEmail = memberData.email;
+                      const memberId = memberData.id;
+                      // Check if this is a family account
+                      let isFamilyAccount = false;
+                      let familyMemberNames = [];
+                      try {
+                        const familyRes = await fetch(`${API_URL}/family/members/${encodeURIComponent(memberEmail)}`);
+                        if (familyRes.ok) {
+                          const familyData = await familyRes.json();
+                          if (Array.isArray(familyData) && familyData.length > 1) {
+                            isFamilyAccount = true;
+                            familyMemberNames = familyData.map((m) => m.name);
+                            localStorage.setItem("family_members", JSON.stringify(familyMemberNames));
+                            localStorage.setItem("member_email", memberEmail);
+                            localStorage.setItem("member_id", memberId);
+                            setMemberEmail(memberEmail);
+                            setFamilyMembers(familyMemberNames);
+                            // Always check in the entered family member
+                            const familyCheckinRes = await fetch(`${API_URL}/family/checkin`, {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                email: memberEmail,
+                                member_names: [memberData.name],
+                              }),
+                            });
+                            if (familyCheckinRes.ok) {
+                              setStatus("success");
+                              setMessage("All family members have checked in for this period!");
+                            } else {
+                              const err = await familyCheckinRes.json();
+                              setStatus("error");
+                              setMessage(err.detail || "Family check-in failed.");
+                            }
+                            return;
+                          }
+                        }
+                      } catch {}
+                      // Not a family, just check in
+                      const checkinRes = await fetch(`${API_URL}/checkin`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email: memberEmail }),
+                      });
+                      if (checkinRes.ok) {
+                        const data = await checkinRes.json();
+                        if (data.member_id && isValidUUID(data.member_id)) {
+                          setMemberId(data.member_id);
+                        }
+                        setStatus("success");
+                        setMessage("Check-in successful! Welcome back.");
+                      } else {
+                        const err = await checkinRes.json();
+                        setStatus("error");
+                        setMessage(err.detail || "Check-in failed.");
+                      }
                       return;
                     }
-                    
-                    const memberData = await lookupRes.json();
-                    const memberEmail = memberData.email;
-                    const memberId = memberData.id;
-                    
-                    // Step 2: Check if this is a family account
-                    let familyMemberNames = [];
-                    try {
-                      const familyRes = await fetch(`${API_URL}/family/members/${encodeURIComponent(memberEmail)}`);
-                      if (familyRes.ok) {
-                        const familyData = await familyRes.json();
-                        if (Array.isArray(familyData) && familyData.length > 1) {
-                          familyMemberNames = familyData.map((m) => m.name);
-                          // Store family info and set up family mode
-                          localStorage.setItem("family_members", JSON.stringify(familyMemberNames));
-                          localStorage.setItem("member_email", memberEmail);
-                          localStorage.setItem("member_id", memberId);
-                          setMemberEmail(memberEmail);
-                          setFamilyMembers(familyMemberNames);
-                          
-                          // Fetch family check-in status
-                          await fetchFamilyCheckinStatus(memberEmail);
-                          setStatus("register");
-                          setMessage("Welcome back! Select family members to check in:");
-                          return;
+                    // If not found, proceed to registration
+                    if (isFamily && allNames.length > 1) {
+                      // Family registration
+                      const regRes = await fetch(`${API_URL}/family/register`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          email: memberEmailToUse,
+                          members: allNames.map((name) => ({ name: name.trim() })),
+                        }),
+                      });
+                      if (regRes.ok) {
+                        const regData = await regRes.json();
+                        // Save family info
+                        localStorage.setItem("family_members", JSON.stringify(regData.members.map((m:any) => m.name)));
+                        localStorage.setItem("member_email", memberEmailToUse);
+                        if (regData.member_ids && regData.member_ids.length > 0) {
+                          localStorage.setItem("member_id", regData.member_ids[0]);
                         }
+                        setMemberEmail(memberEmailToUse);
+                        setFamilyMembers(regData.members.map((m:any) => m.name));
+                        setStatus("success");
+                        setMessage(regData.message || "Family registered and checked in!");
+                        return;
+                      } else {
+                        const err = await regRes.json();
+                        setStatus("error");
+                        setMessage(err.detail || "Family registration failed.");
+                        return;
                       }
-                    } catch (e) {
-                      console.log("Not a family account, proceeding with single check-in");
-                    }
-                    
-                    // Step 3: Single member check-in
-                    const checkinRes = await fetch(`${API_URL}/checkin`, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ email: memberEmail }),
-                    });
-                    
-                    if (checkinRes.ok) {
-                      await checkinRes.json(); // Still await the response to avoid unhandled promise
-                      localStorage.setItem("member_email", memberEmail);
-                      localStorage.setItem("member_id", memberId);
-                      setMemberEmail(memberEmail);
-                      localStorage.removeItem("family_members"); // Clear family data for single users
-                      setStatus("success");
-                      setMessage(`${nameToLookup}: Check-in confirmed`);
                     } else {
-                      const err = await checkinRes.json();
-                      setStatus("error");
-                      setMessage(err.detail || "Check-in failed.");
+                      // Single member registration
+                      const regRes = await fetch(`${API_URL}/member`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email: memberEmailToUse, name: allNames[0].trim() }),
+                      });
+                      if (regRes.ok) {
+                        const regData = await regRes.json();
+                        localStorage.setItem("member_email", memberEmailToUse);
+                        localStorage.setItem("member_id", regData.id);
+                        setMemberEmail(memberEmailToUse);
+                        localStorage.removeItem("family_members");
+                        // Immediately check in the new member
+                        const checkinRes = await fetch(`${API_URL}/checkin`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ email: memberEmailToUse }),
+                        });
+                        if (checkinRes.ok) {
+                          setStatus("success");
+                          setMessage("Registration and check-in successful!");
+                        } else {
+                          setStatus("error");
+                          setMessage("Registration succeeded but check-in failed. Please try checking in again.");
+                        }
+                        return;
+                      } else {
+                        const err = await regRes.json();
+                        setStatus("error");
+                        setMessage(err.detail || "Registration failed.");
+                        return;
+                      }
                     }
-                    
                   } catch (error) {
-                    console.error("Error during name lookup and check-in:", error);
                     setStatus("error");
                     setMessage("Network error. Please try again.");
                   }
@@ -512,7 +577,7 @@ function MemberCheckin() {
 
                   for (const [idx, name] of allNames.entries()) {
                     try {
-                      // Step 1: Look up member by name
+                      // Step 1: Look up member by name to get email and family info
                       const lookupRes = await fetch(`${API_URL}/member/lookup-by-name`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -660,6 +725,20 @@ function MemberCheckin() {
                   </button>
                 </motion.div>
               )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+        {/* Success State */}
+        <AnimatePresence>
+          {status === "success" && (
+            <motion.div
+              className="w-full max-w-md glass-card bg-green-500/10 p-6 text-center"
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 200, damping: 15 }}
+            >
+              <p className="text-xl font-semibold text-green-400">{message || "Registration and check-in successful!"}</p>
             </motion.div>
           )}
         </AnimatePresence>
