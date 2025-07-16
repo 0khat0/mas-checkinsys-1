@@ -51,7 +51,7 @@ function MemberStats({ memberId }: Props) {
 
   // Add member form state
   // const showAddMember = useState(false)[0]; // Unused, comment out for now
-  const [newMemberName, setNewMemberName] = useState("");
+  // const [newMemberName, setNewMemberName] = useState(""); // Unused, comment out for now
   // const addMemberError = useState('')[0]; // Unused, comment out for now
   // const addMemberLoading = useState(false)[0]; // Unused, comment out for now
 
