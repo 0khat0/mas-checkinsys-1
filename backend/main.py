@@ -299,6 +299,7 @@ async def check_in_by_name(request: Request, member_data: dict, db: Session = De
         return {
             "message": f"Already checked in this {'AM' if is_am else 'PM' }.",
             "member_id": member.id,
+            "email": member.email,
             "timestamp": existing.timestamp,
             "period": 'AM' if is_am else 'PM',
             "already_checked_in": True
@@ -318,6 +319,7 @@ async def check_in_by_name(request: Request, member_data: dict, db: Session = De
     return {
         "message": "Check-in successful",
         "member_id": member.id,
+        "email": member.email,
         "timestamp": checkin.timestamp,
         "period": 'AM' if is_am else 'PM',
         "already_checked_in": False

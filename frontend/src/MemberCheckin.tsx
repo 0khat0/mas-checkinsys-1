@@ -596,6 +596,8 @@ function MemberCheckin() {
                     const API_URL = getApiUrl();
                     let results: string[] = [];
                     let anyNotFound = false;
+                    let firstMemberId = null;
+                    let firstMemberEmail = null;
                     for (const name of allNames) {
                       try {
                         const res = await fetch(`${API_URL}/checkin/by-name`, {
@@ -604,7 +606,15 @@ function MemberCheckin() {
                           body: JSON.stringify({ name }),
                         });
                         if (res.ok) {
+                          const data = await res.json();
                           results.push(`${name}: Check-in confirmed`);
+                          // Save the first member's id and email for profile access
+                          if (!firstMemberId && data.member_id && isValidUUID(data.member_id)) {
+                            firstMemberId = data.member_id;
+                          }
+                          if (!firstMemberEmail && data.email) {
+                            firstMemberEmail = data.email;
+                          }
                         } else {
                           const data = await res.json();
                           if (data.detail === "Member not found") {
@@ -617,6 +627,12 @@ function MemberCheckin() {
                       } catch {
                         results.push(`${name}: Network error`);
                       }
+                    }
+                    // Save to localStorage if found
+                    if (firstMemberId && firstMemberEmail) {
+                      localStorage.setItem("member_id", firstMemberId);
+                      localStorage.setItem("member_email", firstMemberEmail);
+                      setMemberEmail(firstMemberEmail);
                     }
                     if (anyNotFound) {
                       setStatus("register"); // keep form open
