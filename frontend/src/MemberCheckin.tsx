@@ -43,7 +43,6 @@ function MemberCheckin() {
   const [selectedFamilyMembers, setSelectedFamilyMembers] = useState<string[]>([]); // NEW: Track selected members for check-in
   // Track which family members are not checked in for the current period
   const [notCheckedInMembers, setNotCheckedInMembers] = useState<string[]>([]);
-  const [checkedInMembers, setCheckedInMembers] = useState<string[]>([]);
   const [checkinStatusLoading, setCheckinStatusLoading] = useState(false);
 
   // Helper to handle name changes
@@ -62,14 +61,11 @@ function MemberCheckin() {
       if (res.ok) {
         const data = await res.json();
         setNotCheckedInMembers(data.not_checked_in || []);
-        setCheckedInMembers(data.checked_in || []);
       } else {
         setNotCheckedInMembers([]);
-        setCheckedInMembers([]);
       }
     } catch {
       setNotCheckedInMembers([]);
-      setCheckedInMembers([]);
     } finally {
       setCheckinStatusLoading(false);
     }
