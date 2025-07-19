@@ -203,7 +203,7 @@ function MemberCheckin() {
           <div className="flex flex-col items-start justify-center w-full max-w-xs">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight drop-shadow-lg"
                 style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7)' }}>
-              MAS Academy of Martial Arts
+              MAS Academy Member Hub
             </h1>
             <div className="h-2 rounded-full animated-accent-bar shadow-md mt-2 w-full" />
           </div>

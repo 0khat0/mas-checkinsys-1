@@ -274,7 +274,7 @@ function AdminDashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          Admin Dashboard
+          MAS Academy Member Hub - Admin Dashboard
         </motion.h1>
 
         {/* Debug Timezone Info */}
