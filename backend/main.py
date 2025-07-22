@@ -16,6 +16,7 @@ import pytz
 import json
 import os
 import models
+from models import generate_barcode
 from database import engine, SessionLocal
 from typing import List, Dict, Optional
 import jwt
@@ -476,7 +477,15 @@ async def create_member(request: Request, member_data: dict, db: Session = Depen
     if existing:
         raise HTTPException(status_code=409, detail="Member already exists")
     
-    member = models.Member(email=email, name=name)
+    # Generate unique barcode
+    while True:
+        barcode = generate_barcode()
+        # Check if barcode already exists
+        existing_barcode = db.query(models.Member).filter(models.Member.barcode == barcode).first()
+        if not existing_barcode:
+            break
+    
+    member = models.Member(email=email, name=name, barcode=barcode)
     db.add(member)
     db.commit()
     db.refresh(member)
@@ -515,7 +524,15 @@ async def register_family(request: Request, family_data: models.FamilyRegistrati
     # Create all family members
     created_members = []
     for member_info in members:
-        member = models.Member(email=email, name=member_info.name)
+        # Generate unique barcode for each family member
+        while True:
+            barcode = generate_barcode()
+            # Check if barcode already exists
+            existing_barcode = db.query(models.Member).filter(models.Member.barcode == barcode).first()
+            if not existing_barcode:
+                break
+        
+        member = models.Member(email=email, name=member_info.name, barcode=barcode)
         db.add(member)
         created_members.append(member)
     
@@ -927,7 +944,15 @@ async def add_family_members(request: Request, add_data: dict, db: Session = Dep
     # Add new family members
     created_members = []
     for member_name in new_members:
-        member = models.Member(email=email, name=member_name)
+        # Generate unique barcode for each new family member
+        while True:
+            barcode = generate_barcode()
+            # Check if barcode already exists
+            existing_barcode = db.query(models.Member).filter(models.Member.barcode == barcode).first()
+            if not existing_barcode:
+                break
+        
+        member = models.Member(email=email, name=member_name, barcode=barcode)
         db.add(member)
         created_members.append(member)
         MEMBER_COUNT.inc()
@@ -946,6 +971,78 @@ async def add_family_members(request: Request, add_data: dict, db: Session = Dep
         "message": f"Added {len(created_members)} new members to family",
         "new_members": [models.MemberOut.model_validate(m) for m in created_members],
         "all_family_members": [models.MemberOut.model_validate(m) for m in all_family_members]
+    }
+
+@app.get("/member/lookup-by-barcode/{barcode}")
+@limiter.limit("50/minute")  # Higher limit for scanning operations
+async def lookup_member_by_barcode(request: Request, barcode: str, db: Session = Depends(get_db)):
+    """Look up a member by their barcode for scanning check-in"""
+    if not barcode:
+        raise HTTPException(status_code=400, detail="Barcode is required")
+    
+    # Find member by barcode
+    member = db.query(models.Member).filter(
+        models.Member.barcode == barcode,
+        models.Member.deleted_at.is_(None)
+    ).first()
+    
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found with this barcode")
+    
+    logger.info("Member looked up by barcode", member_id=str(member.id), barcode=barcode, member_name=member.name)
+    
+    return models.MemberOut.model_validate(member)
+
+@app.post("/checkin-by-barcode")
+@limiter.limit("50/minute")  # Higher limit for scanning operations
+async def checkin_by_barcode(request: Request, checkin_data: dict, db: Session = Depends(get_db)):
+    """Check in a member using their barcode"""
+    barcode = checkin_data.get("barcode")
+    
+    if not barcode:
+        raise HTTPException(status_code=400, detail="Barcode is required")
+    
+    # Find member by barcode
+    member = db.query(models.Member).filter(
+        models.Member.barcode == barcode,
+        models.Member.deleted_at.is_(None)
+    ).first()
+    
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found with this barcode")
+    
+    # Get timezone for Toronto
+    toronto_tz = pytz.timezone('America/Toronto')
+    now = datetime.now(toronto_tz)
+    start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_of_day = start_of_day + timedelta(days=1)
+    
+    # Check if member already checked in today (Toronto time)
+    existing_checkin = db.query(models.Checkin).filter(
+        models.Checkin.member_id == member.id,
+        models.Checkin.timestamp >= start_of_day,
+        models.Checkin.timestamp < end_of_day
+    ).first()
+    
+    if existing_checkin:
+        raise HTTPException(status_code=409, detail=f"{member.name} has already checked in today")
+    
+    # Create check-in record
+    checkin = models.Checkin(member_id=member.id)
+    db.add(checkin)
+    db.commit()
+    db.refresh(checkin)
+    
+    # Update metrics
+    CHECKIN_COUNT.inc()
+    
+    logger.info("Member checked in by barcode", member_id=str(member.id), barcode=barcode, checkin_id=str(checkin.id))
+    
+    return {
+        "message": f"{member.name} checked in successfully!",
+        "member": models.MemberOut.model_validate(member),
+        "checkin_id": str(checkin.id),
+        "timestamp": checkin.timestamp
     }
 
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "changeme")

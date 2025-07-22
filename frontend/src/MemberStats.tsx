@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { isValidUUID, getApiUrl, clearMemberData, getTorontoTime, getTorontoDateString, getMondayOfCurrentWeekToronto } from './utils';
+import BarcodeGenerator from './BarcodeGenerator';
 
 interface MemberStats {
   monthly_check_ins: number;
@@ -10,6 +11,7 @@ interface MemberStats {
   check_in_dates?: string[];
   name?: string;
   email?: string;
+  barcode?: string;
 }
 
 interface FamilyMember {
@@ -665,9 +667,19 @@ function MemberStats({ memberId }: Props) {
             </div>
             <div className="w-16 h-1 rounded-full bg-gradient-to-r from-purple-500 to-purple-700" />
           </div>
-          {/* Barcode content placeholder */}
-          <div className="text-center text-white/50 py-8">
-            <p>Barcode will be displayed here</p>
+          {/* Barcode content */}
+          <div className="flex justify-center">
+            {stats?.barcode ? (
+              <BarcodeGenerator 
+                value={stats.barcode} 
+                className="max-w-full"
+              />
+            ) : (
+              <div className="text-center text-white/50 py-8">
+                <p>No barcode available</p>
+                <p className="text-xs mt-2">Barcode will be generated automatically</p>
+              </div>
+            )}
           </div>
         </motion.div>
 
