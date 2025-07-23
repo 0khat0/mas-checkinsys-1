@@ -96,6 +96,8 @@ function MemberStats({ memberId }: Props) {
         }
         
         const data = await response.json();
+        console.log('Member stats data:', data); // Debug log
+        console.log('Barcode from API:', data.barcode); // Debug log
         setStats(data);
         setEditName(data.name || '');
         setEditEmail(data.email || '');

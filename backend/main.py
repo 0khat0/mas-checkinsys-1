@@ -785,7 +785,8 @@ async def get_member_stats(request: Request, member_id: str, db: Session = Depen
         "member_since": member.created_at.strftime("%B %Y"),
         "check_in_dates": [dt.isoformat() for dt in check_in_dates],
         "name": member.name,  # Always include name
-        "email": member.email # Always include email
+        "email": member.email, # Always include email
+        "barcode": member.barcode  # Include barcode for display
     }
     
     return stats 

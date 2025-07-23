@@ -19,7 +19,9 @@ const BarcodeGenerator: React.FC<BarcodeGeneratorProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
+    console.log('BarcodeGenerator received value:', value); // Debug log
     if (canvasRef.current && value) {
+      console.log('Generating barcode for:', value); // Debug log
       try {
         JsBarcode(canvasRef.current, value, {
           format: "CODE128",
