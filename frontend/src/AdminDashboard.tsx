@@ -11,7 +11,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
-import { getTorontoTime, getTorontoDateString } from './utils';
+import { getTorontoTime } from './utils';
 
 interface DailyCheckin {
   checkin_id: string;
