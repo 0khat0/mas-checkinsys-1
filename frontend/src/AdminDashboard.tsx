@@ -220,19 +220,15 @@ function AdminDashboard() {
 
   // --- Build processed data with zero-fill using date part only ---
   let processedCheckinData: { date: string, count: number }[] = [];
-  let autoGroup: 'day' | 'month' = 'day';
-  if (dateRange === 'year') autoGroup = 'month';
-  if (dateRange === 'week' || dateRange === 'month') autoGroup = 'day';
-  const countMap = new Map<string, number>();
-  checkinData.forEach(d => {
-    const dateKey = d.date.slice(0, 10); // YYYY-MM-DD
-    countMap.set(dateKey, (countMap.get(dateKey) || 0) + (d.count || 0));
-  });
-  const allDates = generateTorontoDateRange(startDate, endDate, autoGroup);
-  processedCheckinData = allDates.map(dateKey => ({
-    date: toTorontoISO(new Date(dateKey)), // for X axis display
-    count: countMap.get(dateKey) || 0
+  
+  // Simply use the data as returned by backend since it already handles Toronto timezone
+  processedCheckinData = checkinData.map(d => ({
+    date: d.date, // Backend already returns Toronto-timezone ISO strings
+    count: d.count || 0
   }));
+
+  // If we need to fill in missing dates, we can do that here
+  // But for now, let's see if the backend data is correct first
 
   if (!isAuthenticated) {
     return (
@@ -513,7 +509,7 @@ function AdminDashboard() {
                   stroke="rgba(255,255,255,0.5)"
                   tickFormatter={(date) => {
                     const d = new Date(date);
-                    return autoGroup === 'month' ? format(d, 'MMM yyyy') : format(d, 'MMM d');
+                    return groupBy === 'month' ? format(d, 'MMM yyyy') : format(d, 'MMM d');
                   }}
                   minTickGap={10}
                 />
@@ -526,7 +522,7 @@ function AdminDashboard() {
                   }}
                   labelFormatter={(date) => {
                     const d = new Date(date);
-                    return autoGroup === 'month' ? format(d, 'MMMM yyyy') : format(d, 'PPP');
+                    return groupBy === 'month' ? format(d, 'MMMM yyyy') : format(d, 'PPP');
                   }}
                   formatter={(value: any) => [`${value} check-in${value === 1 ? '' : 's'}`, '']}
                 />
