@@ -183,17 +183,53 @@ function AdminDashboard() {
     }
   };
 
+  // Helper to generate a range of dates (days or months) for zero-filling
+  function generateDateRange(start: Date, end: Date, group: 'day' | 'month') {
+    const range = [];
+    let current = new Date(start);
+    if (group === 'month') {
+      current = new Date(current.getFullYear(), current.getMonth(), 1);
+      end = new Date(end.getFullYear(), end.getMonth(), 1);
+      while (current <= end) {
+        range.push(format(current, 'yyyy-MM'));
+        current.setMonth(current.getMonth() + 1);
+      }
+    } else {
+      while (current <= end) {
+        range.push(format(current, 'yyyy-MM-dd'));
+        current.setDate(current.getDate() + 1);
+      }
+    }
+    return range;
+  }
+
   // --- Build processed data with zero-fill using date part only ---
   let processedCheckinData: { date: string, count: number }[] = [];
-  
-  // Simply use the data as returned by backend since it already handles Toronto timezone
-  processedCheckinData = checkinData.map(d => ({
-    date: d.date, // Backend already returns Toronto-timezone ISO strings
-    count: d.count || 0
-  }));
-
-  // If we need to fill in missing dates, we can do that here
-  // But for now, let's see if the backend data is correct first
+  if (groupBy === 'month') {
+    // Year view: group by month
+    const countMap = new Map<string, number>();
+    checkinData.forEach(d => {
+      const monthKey = d.date.slice(0, 7); // YYYY-MM
+      countMap.set(monthKey, (countMap.get(monthKey) || 0) + (d.count || 0));
+    });
+    const allMonths = generateDateRange(startDate, endDate, 'month');
+    processedCheckinData = allMonths.map(monthKey => ({
+      date: `${monthKey}-01`, // Use first day of month for chart X axis
+      count: countMap.get(monthKey) || 0
+    }));
+  } else {
+    // Week/month view: group by day
+    const countMap = new Map<string, number>();
+    checkinData.forEach(d => {
+      const dayKey = d.date.slice(0, 10); // YYYY-MM-DD
+      countMap.set(dayKey, (countMap.get(dayKey) || 0) + (d.count || 0));
+    });
+    const allDays = generateDateRange(startDate, endDate, 'day');
+    processedCheckinData = allDays.map(dayKey => ({
+      date: dayKey,
+      count: countMap.get(dayKey) || 0
+    }));
+  }
 
   if (!isAuthenticated) {
     return (
