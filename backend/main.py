@@ -390,10 +390,11 @@ async def get_checkins_by_range(
     )
     
     # Add aggregation based on group_by parameter
+    # Convert timestamps to Toronto timezone first, then truncate
     if group_by == "day":
-        # Group by day with count
+        # Group by day with count (convert to Toronto timezone first)
         results = db.query(
-            func.date_trunc('day', models.Checkin.timestamp).label('date'),
+            func.date_trunc('day', func.timezone('America/Toronto', models.Checkin.timestamp)).label('date'),
             func.count().label('count')
         ).filter(
             models.Checkin.timestamp >= start_utc,
@@ -401,7 +402,7 @@ async def get_checkins_by_range(
         ).group_by('date').order_by('date').all()
     elif group_by == "week":
         results = db.query(
-            func.date_trunc('week', models.Checkin.timestamp).label('date'),
+            func.date_trunc('week', func.timezone('America/Toronto', models.Checkin.timestamp)).label('date'),
             func.count().label('count')
         ).filter(
             models.Checkin.timestamp >= start_utc,
@@ -409,7 +410,7 @@ async def get_checkins_by_range(
         ).group_by('date').order_by('date').all()
     elif group_by == "month":
         results = db.query(
-            func.date_trunc('month', models.Checkin.timestamp).label('date'),
+            func.date_trunc('month', func.timezone('America/Toronto', models.Checkin.timestamp)).label('date'),
             func.count().label('count')
         ).filter(
             models.Checkin.timestamp >= start_utc,
@@ -417,7 +418,7 @@ async def get_checkins_by_range(
         ).group_by('date').order_by('date').all()
     elif group_by == "year":
         results = db.query(
-            func.date_trunc('year', models.Checkin.timestamp).label('date'),
+            func.date_trunc('year', func.timezone('America/Toronto', models.Checkin.timestamp)).label('date'),
             func.count().label('count')
         ).filter(
             models.Checkin.timestamp >= start_utc,
@@ -425,7 +426,7 @@ async def get_checkins_by_range(
         ).group_by('date').order_by('date').all()
     
     return [{
-        "date": r.date.astimezone(toronto_tz).isoformat(),
+        "date": r.date.isoformat(),  # Already in Toronto timezone after func.timezone conversion
         "count": r.count
     } for r in results]
 
