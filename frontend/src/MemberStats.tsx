@@ -444,82 +444,176 @@ function MemberStats({ memberId }: Props) {
   return (
     <div className="min-h-screen w-full bg-gray-900 font-poppins overflow-x-hidden">
       <div className="max-w-4xl mx-auto space-y-6">
-        {/* Family Members Section */}
-        {isFamily && (
-        <motion.div
-          className="bg-gray-800/50 rounded-xl p-6 backdrop-blur-sm border border-white/10 mb-8"
+        {/* QR Code Section FIRST */}
+        <div className="w-full flex justify-center my-6">
+          {(() => {
+            let qrData = null;
+            if (isFamily && familyMembers.length > 1) {
+              qrData = {
+                type: "family",
+                email: stats.email,
+                members: familyMembers.map(m => ({ name: m.name, barcode: (m as any).barcode })),
+              };
+            } else if (stats.barcode && stats.email) {
+              qrData = {
+                type: "member",
+                barcode: stats.barcode,
+                email: stats.email,
+                name: stats.name,
+              };
+            }
+            return qrData ? (
+              <QRCodeGenerator data={qrData} />
+            ) : (
+              <div className="text-gray-400">No QR code available</div>
+            );
+          })()}
+        </div>
+
+        {/* Stats Section SECOND */}
+        <motion.div 
+          className="bg-gray-800/50 rounded-xl p-6 backdrop-blur-sm border border-white/10"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
         >
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-lg">👨‍👩‍👧‍👦</span>
+          <div className="mb-6 flex flex-col items-start">
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
               </div>
-              <h2 className="text-2xl font-extrabold text-white">Family Members</h2>
+              <h2 className="text-2xl font-extrabold text-white">
+                {isFamily ? `${selectedMember?.name || 'Member'}'s Stats` : 'My Stats'}
+              </h2>
             </div>
-            <button
-              onClick={() => { setShowAddMember(true); }}
-              className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2 rounded-lg transition-colors duration-200"
+            <div className="w-16 h-1 rounded-full bg-gradient-to-r from-blue-500 to-blue-700" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Current Streak Card */}
+            <motion.div 
+              className="bg-gray-700/50 rounded-lg p-4 backdrop-blur-sm border border-white/10"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
             >
-              + Add Member
-            </button>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-white/70 text-sm">Current Streak</p>
+                  <div className="flex items-baseline mt-1">
+                    <h3 className="text-3xl font-bold text-white">
+                      {stats.current_streak}
+                    </h3>
+                    <span className="text-white/50 ml-2">days</span>
+                  </div>
+                </div>
+                <div className="text-3xl">🔥</div>
+              </div>
+              <div className="mt-2">
+                <p className="text-white/50 text-sm">
+                  Best: {stats.highest_streak} days
+                </p>
+              </div>
+            </motion.div>
+            {/* This Week Progress Card */}
+            <motion.div 
+              className="bg-gray-700/50 rounded-lg p-4 backdrop-blur-sm border border-white/10"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-white/70 text-sm">This Week</p>
+                  <div className="flex items-baseline mt-1">
+                    <h3 className="text-3xl font-bold text-white">
+                      {weeklyCheckins}
+                    </h3>
+                    <span className="text-white/50 ml-2">/ {goal}</span>
+                  </div>
+                </div>
+                <div className="text-3xl">🏋️‍♂️</div>
+              </div>
+              {/* Progress Bar */}
+              <div className="mt-4">
+                <div className="h-2 bg-gray-600 rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-red-500 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min((weeklyCheckins / goal) * 100, 100)}%` }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                  />
+                </div>
+                <p className="text-white/50 text-xs mt-2">
+                  {percent}% of weekly goal
+                </p>
+                {/* Weekly Goal Input */}
+                <div className="mt-3">
+                  <div className="mb-2">
+                    <span className="text-white/50 text-xs">Weekly Goal:</span>
+                  </div>
+                  <div className="flex items-center gap-2 w-full justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setGoal(Math.max(1, goal - 1))}
+                      className="w-8 h-8 rounded-full bg-gray-600 hover:bg-gray-500 text-white font-bold text-lg flex items-center justify-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500"
+                      disabled={goal <= 1}
+                    >
+                      -
+                    </button>
+                    <input
+                      type="number"
+                      min="1"
+                      max="7"
+                      value={goal}
+                      onChange={e => {
+                        const value = parseInt(e.target.value) || 1;
+                        const clampedValue = Math.max(1, Math.min(7, value));
+                        setGoal(clampedValue);
+                      }}
+                      onBlur={e => {
+                        const value = parseInt(e.target.value) || 1;
+                        const clampedValue = Math.max(1, Math.min(7, value));
+                        setGoal(clampedValue);
+                      }}
+                      className="w-12 px-2 py-1 rounded bg-gray-600 text-white border border-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 text-center text-sm font-semibold"
+                      style={{ WebkitAppearance: 'none', MozAppearance: 'textfield' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setGoal(Math.min(7, goal + 1))}
+                      className="w-8 h-8 rounded-full bg-gray-600 hover:bg-gray-500 text-white font-bold text-lg flex items-center justify-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500"
+                      disabled={goal >= 7}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+            {/* Monthly Check-ins Card */}
+            <motion.div 
+              className="bg-gray-700/50 rounded-lg p-4 backdrop-blur-sm border border-white/10"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white/70 text-sm">This Month</p>
+                  <h3 className="text-3xl font-bold text-white mt-1">
+                    {stats.monthly_check_ins}
+                  </h3>
+                  <p className="text-white/50 text-sm mt-1">Check-ins</p>
+                </div>
+                <div className="text-3xl">📅</div>
+              </div>
+            </motion.div>
           </div>
-          {/* Remove 'Active Members' label */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {activeMembers.map((member) => (
-              <button
-                key={member.id}
-                onClick={() => setSelectedMemberId(member.id)}
-                className={`w-full text-left rounded-lg border-2 px-4 py-3 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 font-semibold ${selectedMemberId === member.id ? 'border-purple-500 bg-purple-900/40 text-white' : 'border-gray-600 bg-gray-800/60 text-white/80 hover:bg-purple-800/20'}`}
-              >
-                <div className="text-lg font-bold">{member.name}</div>
-                <div className="text-sm text-white/60">{member.email}</div>
-              </button>
-            ))}
-          </div>
-          {/* Add Member Modal and other logic remain unchanged */}
-          
-          {/* Add Member Form */}
-          {showAddMember && (
-            <div className="mt-6">
-              <form
-                className="flex flex-col sm:flex-row gap-2 items-center"
-                onSubmit={e => { e.preventDefault(); handleAddMember(); }}
-              >
-                <input
-                  className="w-full px-4 py-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
-                  placeholder="Enter new member's full name"
-                  type="text"
-                  value={newMemberName}
-                  onChange={e => setNewMemberName(e.target.value)}
-                  required
-                  disabled={addMemberLoading}
-                />
-                <button
-                  type="submit"
-                  className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-3 rounded-lg transition-colors duration-200"
-                  disabled={addMemberLoading}
-                >
-                  {addMemberLoading ? "Adding..." : "Add"}
-                </button>
-                <button
-                  type="button"
-                  className="bg-gray-600 hover:bg-gray-700 text-white font-semibold px-4 py-3 rounded-lg transition-colors duration-200"
-                  onClick={() => { setShowAddMember(false); setNewMemberName(""); setAddMemberError(""); }}
-                  disabled={addMemberLoading}
-                >
-                  Cancel
-                </button>
-              </form>
-              {addMemberError && <div className="text-red-400 mt-2 text-sm">{addMemberError}</div>}
-            </div>
-                     )}
         </motion.div>
-        )}
- 
-        {/* Profile Section */}
+
+        {/* Profile Section LAST */}
         <motion.div
           className="bg-gray-800/50 rounded-xl p-6 backdrop-blur-sm border border-white/10"
           initial={{ opacity: 0, y: 20 }}
@@ -649,177 +743,6 @@ function MemberStats({ memberId }: Props) {
               {editSuccess}
             </motion.div>
           )}
-        </motion.div>
-
-        {/* QR Code Section */}
-        <div className="w-full flex justify-center my-6">
-          {(() => {
-            let qrData = null;
-            if (isFamily && familyMembers.length > 1) {
-              qrData = {
-                type: "family",
-                email: stats.email,
-                members: familyMembers.map(m => ({ name: m.name, barcode: (m as any).barcode })),
-              };
-            } else if (stats.barcode && stats.email) {
-              qrData = {
-                type: "member",
-                barcode: stats.barcode,
-                email: stats.email,
-                name: stats.name,
-              };
-            }
-            return qrData ? (
-              <QRCodeGenerator data={qrData} />
-            ) : (
-              <div className="text-gray-400">No QR code available</div>
-            );
-          })()}
-        </div>
-
-        {/* Stats Section */}
-        <motion.div 
-          className="bg-gray-800/50 rounded-xl p-6 backdrop-blur-sm border border-white/10"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-        >
-          <div className="mb-6 flex flex-col items-start">
-            <div className="flex items-center gap-3 mb-1">
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-extrabold text-white">
-                {isFamily ? `${selectedMember?.name || 'Member'}'s Stats` : 'My Stats'}
-              </h2>
-            </div>
-            <div className="w-16 h-1 rounded-full bg-gradient-to-r from-blue-500 to-blue-700" />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Current Streak Card */}
-            <motion.div 
-              className="bg-gray-700/50 rounded-lg p-4 backdrop-blur-sm border border-white/10"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-white/70 text-sm">Current Streak</p>
-                  <div className="flex items-baseline mt-1">
-                    <h3 className="text-3xl font-bold text-white">
-                      {stats.current_streak}
-                    </h3>
-                    <span className="text-white/50 ml-2">days</span>
-                  </div>
-                </div>
-                <div className="text-3xl">🔥</div>
-              </div>
-              <div className="mt-2">
-                <p className="text-white/50 text-sm">
-                  Best: {stats.highest_streak} days
-                </p>
-              </div>
-            </motion.div>
-            
-            {/* This Week Progress Card */}
-            <motion.div 
-              className="bg-gray-700/50 rounded-lg p-4 backdrop-blur-sm border border-white/10"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.1 }}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-white/70 text-sm">This Week</p>
-                  <div className="flex items-baseline mt-1">
-                    <h3 className="text-3xl font-bold text-white">
-                      {weeklyCheckins}
-                    </h3>
-                    <span className="text-white/50 ml-2">/ {goal}</span>
-                  </div>
-                </div>
-                <div className="text-3xl">🏋️‍♂️</div>
-              </div>
-              {/* Progress Bar */}
-              <div className="mt-4">
-                <div className="h-2 bg-gray-600 rounded-full overflow-hidden">
-                  <motion.div
-                    className="h-full bg-red-500 rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${Math.min((weeklyCheckins / goal) * 100, 100)}%` }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
-                  />
-                </div>
-                <p className="text-white/50 text-xs mt-2">
-                  {percent}% of weekly goal
-                </p>
-                {/* Weekly Goal Input */}
-                <div className="mt-3">
-                  <div className="mb-2">
-                    <span className="text-white/50 text-xs">Weekly Goal:</span>
-                  </div>
-                  <div className="flex items-center gap-2 w-full justify-center">
-                    <button
-                      type="button"
-                      onClick={() => setGoal(Math.max(1, goal - 1))}
-                      className="w-8 h-8 rounded-full bg-gray-600 hover:bg-gray-500 text-white font-bold text-lg flex items-center justify-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500"
-                      disabled={goal <= 1}
-                    >
-                      -
-                    </button>
-                    <input
-                      type="number"
-                      min="1"
-                      max="7"
-                      value={goal}
-                      onChange={e => {
-                        const value = parseInt(e.target.value) || 1;
-                        const clampedValue = Math.max(1, Math.min(7, value));
-                        setGoal(clampedValue);
-                      }}
-                      onBlur={e => {
-                        const value = parseInt(e.target.value) || 1;
-                        const clampedValue = Math.max(1, Math.min(7, value));
-                        setGoal(clampedValue);
-                      }}
-                      className="w-12 px-2 py-1 rounded bg-gray-600 text-white border border-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 text-center text-sm font-semibold"
-                      style={{ WebkitAppearance: 'none', MozAppearance: 'textfield' }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setGoal(Math.min(7, goal + 1))}
-                      className="w-8 h-8 rounded-full bg-gray-600 hover:bg-gray-500 text-white font-bold text-lg flex items-center justify-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500"
-                      disabled={goal >= 7}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-            
-            {/* Monthly Check-ins Card */}
-            <motion.div 
-              className="bg-gray-700/50 rounded-lg p-4 backdrop-blur-sm border border-white/10"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.2 }}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-white/70 text-sm">This Month</p>
-                  <h3 className="text-3xl font-bold text-white mt-1">
-                    {stats.monthly_check_ins}
-                  </h3>
-                  <p className="text-white/50 text-sm mt-1">Check-ins</p>
-                </div>
-                <div className="text-3xl">📅</div>
-              </div>
-            </motion.div>
-          </div>
         </motion.div>
       </div>
     </div>
