@@ -51,7 +51,6 @@ function MemberStats({ memberId }: Props) {
   const [familyFetchComplete, setFamilyFetchComplete] = useState(false);
 
   // Add member form state
-  const [newMemberName, setNewMemberName] = useState("");
   // const deletedMembers = familyMembers.filter(m => m.is_deleted); // Unused, comment out for now
 
   // Declare selectedMember early to prevent initialization errors
