@@ -188,14 +188,19 @@ function AdminDashboard() {
     const range = [];
     let current = new Date(start);
     if (group === 'month') {
-      current = new Date(current.getFullYear(), current.getMonth(), 1);
-      end = new Date(end.getFullYear(), end.getMonth(), 1);
-      while (current <= end) {
+      // Set both current and end to the first of their months at midnight
+      current = new Date(current.getFullYear(), current.getMonth(), 1, 0, 0, 0, 0);
+      const endMonth = new Date(end.getFullYear(), end.getMonth(), 1, 0, 0, 0, 0);
+      while (current <= endMonth) {
         range.push(format(current, 'yyyy-MM'));
         current.setMonth(current.getMonth() + 1);
       }
     } else {
-      while (current <= end) {
+      // Set both current and end to midnight
+      current.setHours(0, 0, 0, 0);
+      const endDay = new Date(end);
+      endDay.setHours(0, 0, 0, 0);
+      while (current <= endDay) {
         range.push(format(current, 'yyyy-MM-dd'));
         current.setDate(current.getDate() + 1);
       }
