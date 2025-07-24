@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { isValidUUID, getApiUrl, clearMemberData, getTorontoTime, getTorontoDateString, getMondayOfCurrentWeekToronto } from './utils';
 import QRCodeGenerator from './QRCodeGenerator';
 
@@ -52,10 +51,8 @@ function MemberStats({ memberId }: Props) {
   const [familyFetchComplete, setFamilyFetchComplete] = useState(false);
 
   // Add member form state
-  const [showAddMember, setShowAddMember] = useState(false);
   const [newMemberName, setNewMemberName] = useState("");
-  const [addMemberError, setAddMemberError] = useState("");
-  const [addMemberLoading, setAddMemberLoading] = useState(false);
+  // const deletedMembers = familyMembers.filter(m => m.is_deleted); // Unused, comment out for now
 
   // Declare selectedMember early to prevent initialization errors
   const selectedMember = familyMembers.find(m => m.id === selectedMemberId);
@@ -343,19 +340,17 @@ function MemberStats({ memberId }: Props) {
 
   // Add member handler
   const handleAddMember = async () => {
-    setAddMemberError("");
+    setEditError('');
     if (!/^\s*\S+\s+\S+/.test(newMemberName.trim())) {
-      setAddMemberError("Please enter a full name (first and last). ");
+      setEditError("Please enter a full name (first and last). ");
       return;
     }
-    setAddMemberLoading(true);
     try {
       const API_URL = getApiUrl();
       // Always use the current member_email for new members
       const memberEmail = localStorage.getItem("member_email");
       if (!memberEmail) {
-        setAddMemberError("No family email found. Please check in again.");
-        setAddMemberLoading(false);
+        setEditError("No family email found. Please check in again.");
         return;
       }
       const res = await fetch(`${API_URL}/member`, {
@@ -365,9 +360,9 @@ function MemberStats({ memberId }: Props) {
       });
       if (res.ok) {
         const data = await res.json();
-        setShowAddMember(false);
+        setEditMode(false);
         setNewMemberName("");
-        setAddMemberError("");
+        setEditError("");
         // Add the new member to familyMembers state
         const newMember = {
           id: data.id,
@@ -380,12 +375,10 @@ function MemberStats({ memberId }: Props) {
         if (familyMembers.length + 1 > 1) setIsFamily(true);
       } else {
         const err = await res.json();
-        setAddMemberError(err.detail || "Failed to add member.");
+        setEditError(err.detail || "Failed to add member.");
       }
     } catch {
-      setAddMemberError("Network error. Please try again.");
-    } finally {
-      setAddMemberLoading(false);
+      setEditError("Network error. Please try again.");
     }
   };
 
@@ -438,7 +431,6 @@ function MemberStats({ memberId }: Props) {
   }
 
   const percent = Math.round((weeklyCheckins / goal) * 100);
-  const activeMembers = familyMembers.filter(m => !m.is_deleted);
   // const deletedMembers = familyMembers.filter(m => m.is_deleted); // Unused, comment out for now
 
   return (
