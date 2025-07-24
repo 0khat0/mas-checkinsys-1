@@ -302,8 +302,8 @@ function MemberStats({ memberId }: Props) {
   return (
     <div className="min-h-screen w-full bg-gray-900 font-poppins overflow-x-hidden">
       <div className="max-w-4xl mx-auto space-y-6">
-        {/* QR Code Section FIRST */}
-        <div className="w-full flex justify-center my-6">
+        {/* QR Code Section (no card/box, always at the top) */}
+        <div className="flex justify-center my-6">
           {(() => {
             let qrData = null;
             if (isFamily && familyMembers.length > 1) {
@@ -327,136 +327,42 @@ function MemberStats({ memberId }: Props) {
             );
           })()}
         </div>
-
-        {/* Stats Section SECOND */}
-          <div className="mb-6 flex flex-col items-start">
-            <div className="flex items-center gap-3 mb-1">
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
+        {/* Family Members Section (only if family) */}
+        {isFamily && familyMembers.length > 1 && (
+          <div className="bg-[#181c23] border border-gray-700 rounded-2xl shadow-xl p-8 mb-4">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+                <span className="text-white text-lg">👨‍👩‍👧‍👦</span>
               </div>
-              <h2 className="text-2xl font-extrabold text-white">
-                {isFamily ? `${selectedMember?.name || 'Member'}'s Stats` : 'My Stats'}
-              </h2>
+              <h2 className="text-2xl font-extrabold text-white">Family Members</h2>
             </div>
-            <div className="w-16 h-1 rounded-full bg-gradient-to-r from-blue-500 to-blue-700" />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Current Streak Card */}
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-white/70 text-sm">Current Streak</p>
-                  <div className="flex items-baseline mt-1">
-                    <h3 className="text-3xl font-bold text-white">
-                      {stats.current_streak}
-                    </h3>
-                    <span className="text-white/50 ml-2">days</span>
-                  </div>
-                </div>
-                <div className="text-3xl">🔥</div>
-              </div>
-              <div className="mt-2">
-                <p className="text-white/50 text-sm">
-                  Best: {stats.highest_streak} days
-                </p>
-              </div>
-            {/* This Week Progress Card */}
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-white/70 text-sm">This Week</p>
-                  <div className="flex items-baseline mt-1">
-                    <h3 className="text-3xl font-bold text-white">
-                      {weeklyCheckins}
-                    </h3>
-                    <span className="text-white/50 ml-2">/ {goal}</span>
-                  </div>
-                </div>
-                <div className="text-3xl">🏋️‍♂️</div>
-              </div>
-              {/* Progress Bar */}
-              <div className="mt-4">
-                <div className="h-2 bg-gray-600 rounded-full overflow-hidden">
-                  {/* <motion.div
-                    className="h-full bg-red-500 rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${Math.min((weeklyCheckins / goal) * 100, 100)}%` }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
-                  /> */}
-                </div>
-                <p className="text-white/50 text-xs mt-2">
-                  {percent}% of weekly goal
-                </p>
-                {/* Weekly Goal Input */}
-                <div className="mt-3">
-                  <div className="mb-2">
-                    <span className="text-white/50 text-xs">Weekly Goal:</span>
-                  </div>
-                  <div className="flex items-center gap-2 w-full justify-center">
-                    <button
-                      type="button"
-                      onClick={() => setGoal(Math.max(1, goal - 1))}
-                      className="w-8 h-8 rounded-full bg-gray-600 hover:bg-gray-500 text-white font-bold text-lg flex items-center justify-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500"
-                      disabled={goal <= 1}
-                    >
-                      -
-                    </button>
-                    <input
-                      type="number"
-                      min="1"
-                      max="7"
-                      value={goal}
-                      onChange={e => {
-                        const value = parseInt(e.target.value) || 1;
-                        const clampedValue = Math.max(1, Math.min(7, value));
-                        setGoal(clampedValue);
-                      }}
-                      onBlur={e => {
-                        const value = parseInt(e.target.value) || 1;
-                        const clampedValue = Math.max(1, Math.min(7, value));
-                        setGoal(clampedValue);
-                      }}
-                      className="w-12 px-2 py-1 rounded bg-gray-600 text-white border border-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 text-center text-sm font-semibold"
-                      style={{ WebkitAppearance: 'none', MozAppearance: 'textfield' }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setGoal(Math.min(7, goal + 1))}
-                      className="w-8 h-8 rounded-full bg-gray-600 hover:bg-gray-500 text-white font-bold text-lg flex items-center justify-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500"
-                      disabled={goal >= 7}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              </div>
-            {/* Monthly Check-ins Card */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-white/70 text-sm">This Month</p>
-                  <h3 className="text-3xl font-bold text-white mt-1">
-                    {stats.monthly_check_ins}
-                  </h3>
-                  <p className="text-white/50 text-sm mt-1">Check-ins</p>
-                </div>
-                <div className="text-3xl">📅</div>
-              </div>
-          </div>
-
-        {/* Profile Section LAST */}
-          <div className="mb-6 flex flex-col items-start">
-            <div className="flex items-center gap-3 mb-1">
-              <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-extrabold text-white">
-                {isFamily ? `${selectedMember?.name || 'Member'}'s Profile` : 'My Profile'}
-              </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {familyMembers.filter(m => !m.is_deleted).map((member) => (
+                <button
+                  key={member.id}
+                  onClick={() => setSelectedMemberId(member.id)}
+                  className={`w-full text-left rounded-lg border-2 px-4 py-3 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 font-semibold ${selectedMemberId === member.id ? 'border-purple-500 bg-purple-900/40 text-white' : 'border-gray-600 bg-gray-800/60 text-white/80 hover:bg-purple-800/20'}`}
+                >
+                  <div className="text-lg font-bold">{member.name}</div>
+                  <div className="text-sm text-white/60">{member.email}</div>
+                </button>
+              ))}
             </div>
-            <div className="w-16 h-1 rounded-full bg-gradient-to-r from-red-500 to-red-700" />
           </div>
+        )}
+        {/* Profile Section */}
+        <div className="bg-[#181c23] border border-gray-700 rounded-2xl shadow-xl p-8 mb-4">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-extrabold text-white">
+              {isFamily ? `${selectedMember?.name || 'Member'}'s Profile` : 'My Profile'}
+            </h2>
+          </div>
+          <div className="w-16 h-1 rounded-full bg-gradient-to-r from-red-500 to-red-700 mb-6" />
           {editMode ? (
             <form
               className="space-y-4"
@@ -506,7 +412,6 @@ function MemberStats({ memberId }: Props) {
                     setEditMode(false); 
                     setEditError(''); 
                     setEditSuccess('');
-                    // Reset to original values
                     setEditName(stats.name || '');
                     setEditEmail(stats.email || '');
                   }}
@@ -555,6 +460,89 @@ function MemberStats({ memberId }: Props) {
           {editSuccess && (
               <div className="mt-4 p-3 bg-green-100 border border-green-300 rounded-lg text-green-700 text-sm">{editSuccess}</div>
           )}
+        </div>
+        {/* Stats Section (card with 3 inner boxes) */}
+        <div className="bg-[#181c23] border border-gray-700 rounded-2xl shadow-xl p-8 mb-4">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2m0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-extrabold text-white">
+              {isFamily ? `${selectedMember?.name || 'Member'}'s Stats` : 'My Stats'}
+            </h2>
+          </div>
+          <div className="w-16 h-1 rounded-full bg-gradient-to-r from-blue-500 to-blue-700 mb-6" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+            {/* Current Streak Card */}
+            <div className="bg-[#232736] border border-gray-600 rounded-xl p-6 flex flex-col items-center justify-center">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-3xl text-red-500">🔥</span>
+                <span className="text-lg font-bold text-white">Current Streak</span>
+              </div>
+              <div className="text-4xl font-extrabold text-white mb-1">{stats.current_streak}</div>
+              <div className="text-sm text-white/70">Best: {stats.highest_streak} days</div>
+            </div>
+            {/* This Week Progress Card */}
+            <div className="bg-[#232736] border border-gray-600 rounded-xl p-6 flex flex-col items-center justify-center">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-3xl text-yellow-400">🏋️‍♂️</span>
+                <span className="text-lg font-bold text-white">This Week</span>
+              </div>
+              <div className="text-4xl font-extrabold text-white mb-1">{weeklyCheckins} <span className="text-lg font-normal">/ {goal}</span></div>
+              <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden my-2">
+                <div className="h-full bg-red-500 rounded-full" style={{ width: `${Math.min((weeklyCheckins / goal) * 100, 100)}%` }} />
+              </div>
+              <div className="text-xs text-white/60">{percent}% of weekly goal</div>
+              <div className="flex items-center gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setGoal(Math.max(1, goal - 1))}
+                  className="w-7 h-7 rounded-full bg-gray-600 hover:bg-gray-500 text-white font-bold text-lg flex items-center justify-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500"
+                  disabled={goal <= 1}
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  min="1"
+                  max="7"
+                  value={goal}
+                  onChange={e => {
+                    const value = parseInt(e.target.value) || 1;
+                    const clampedValue = Math.max(1, Math.min(7, value));
+                    setGoal(clampedValue);
+                  }}
+                  onBlur={e => {
+                    const value = parseInt(e.target.value) || 1;
+                    const clampedValue = Math.max(1, Math.min(7, value));
+                    setGoal(clampedValue);
+                  }}
+                  className="w-12 px-2 py-1 rounded bg-gray-700 text-white border border-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 text-center text-sm font-semibold"
+                  style={{ WebkitAppearance: 'none', MozAppearance: 'textfield' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setGoal(Math.min(7, goal + 1))}
+                  className="w-7 h-7 rounded-full bg-gray-600 hover:bg-gray-500 text-white font-bold text-lg flex items-center justify-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500"
+                  disabled={goal >= 7}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            {/* Monthly Check-ins Card */}
+            <div className="bg-[#232736] border border-gray-600 rounded-xl p-6 flex flex-col items-center justify-center">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-3xl text-blue-400">📅</span>
+                <span className="text-lg font-bold text-white">This Month</span>
+              </div>
+              <div className="text-4xl font-extrabold text-white mb-1">{stats.monthly_check_ins}</div>
+              <div className="text-sm text-white/70">Check-ins</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
