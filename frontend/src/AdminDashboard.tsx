@@ -11,7 +11,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
-import { getTorontoTime } from './utils';
+import { getTorontoTime, getTorontoDateString } from './utils';
 
 interface DailyCheckin {
   checkin_id: string;
@@ -214,8 +214,10 @@ function AdminDashboard() {
     // Year view: group by month
     const countMap = new Map<string, number>();
     checkinData.forEach(d => {
-      const monthKey = d.date.slice(0, 7); // YYYY-MM
-      countMap.set(monthKey, (countMap.get(monthKey) || 0) + (d.count || 0));
+      // Always use Toronto month for key
+      const dDate = new Date(d.date);
+      const torontoMonth = dDate.toLocaleString('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit' }).slice(0, 7); // YYYY-MM
+      countMap.set(torontoMonth, (countMap.get(torontoMonth) || 0) + (d.count || 0));
     });
     const allMonths = generateDateRange(startDate, endDate, 'month');
     processedCheckinData = allMonths.map(monthKey => ({
@@ -226,8 +228,10 @@ function AdminDashboard() {
     // Week/month view: group by day
     const countMap = new Map<string, number>();
     checkinData.forEach(d => {
-      const dayKey = d.date.slice(0, 10); // YYYY-MM-DD
-      countMap.set(dayKey, (countMap.get(dayKey) || 0) + (d.count || 0));
+      // Always use Toronto date for key
+      const dDate = new Date(d.date);
+      const torontoDay = dDate.toLocaleDateString('en-CA', { timeZone: 'America/Toronto' }); // YYYY-MM-DD
+      countMap.set(torontoDay, (countMap.get(torontoDay) || 0) + (d.count || 0));
     });
     const allDays = generateDateRange(startDate, endDate, 'day');
     processedCheckinData = allDays.map(dayKey => ({
