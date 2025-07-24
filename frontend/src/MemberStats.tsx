@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { isValidUUID, getApiUrl, clearMemberData, getTorontoTime, getTorontoDateString, getMondayOfCurrentWeekToronto } from './utils';
 import QRCodeGenerator from './QRCodeGenerator';
 
@@ -47,15 +46,7 @@ function MemberStats({ memberId }: Props) {
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState<string>(memberId);
   const [isFamily, setIsFamily] = useState(false);
-  // const familyLoading = useState(false)[0]; // Unused, comment out for now
-  // const familyError = useState('')[0]; // Unused, comment out for now
   const [familyFetchComplete, setFamilyFetchComplete] = useState(false);
-
-  // Add member form state
-  const [showAddMember, setShowAddMember] = useState(false);
-  const [newMemberName, setNewMemberName] = useState("");
-  const [addMemberError, setAddMemberError] = useState("");
-  const [addMemberLoading, setAddMemberLoading] = useState(false);
 
   // Declare selectedMember early to prevent initialization errors
   const selectedMember = familyMembers.find(m => m.id === selectedMemberId);
@@ -178,36 +169,6 @@ function MemberStats({ memberId }: Props) {
     }
   }, [familyMembers, selectedMemberId, familyFetchComplete]);
 
-  // const fetchFamilyMembers = async () => { // Unused, comment out for now
-  //   setFamilyLoading(true); // Unused, comment out for now
-  //   setFamilyError(''); // Unused, comment out for now
-  //   try { // Unused, comment out for now
-  //     const API_URL = getApiUrl(); // Unused, comment out for now
-  //     const memberEmail = localStorage.getItem('member_email'); // Unused, comment out for now
-  //     if (!memberEmail) { // Unused, comment out for now
-  //       setFamilyError('No email found. Please check in again.'); // Unused, comment out for now
-  //       return; // Unused, comment out for now
-  //     } // Unused, comment out for now
-
-  //     const response = await fetch(`${API_URL}/family/members/${encodeURIComponent(memberEmail)}`); // Unused, comment out for now
-  //     if (response.ok) { // Unused, comment out for now
-  //       const data = await response.json(); // Unused, comment out for now
-  //       setFamilyMembers(data || []); // Unused, comment out for now
-  //       // Update localStorage with current family members // Unused, comment out for now
-  //       const memberNames = data.map((m: FamilyMember) => m.name); // Unused, comment out for now
-  //       localStorage.setItem('family_members', JSON.stringify(memberNames)); // Unused, comment out for now
-  //     } else { // Unused, comment out for now
-  //       setFamilyError('Failed to load family members.'); // Unused, comment out for now
-  //     } // Unused, comment out for now
-  //   } catch (error) { // Unused, comment out for now
-  //     console.error('Error fetching family members:', error); // Unused, comment out for now
-  //     setFamilyError('Network error loading family members.'); // Unused, comment out for now
-  //   } finally { // Unused, comment out for now
-  //     setFamilyLoading(false); // Unused, comment out for now
-  //     setFamilyFetchComplete(true); // Unused, comment out for now
-  //   } // Unused, comment out for now
-  // }; // Unused, comment out for now
-
   // Fetch stats for selected member
   useEffect(() => {
     if (selectedMemberId && selectedMemberId !== memberId) {
@@ -288,107 +249,6 @@ function MemberStats({ memberId }: Props) {
     }
   };
 
-  // const handleMemberDelete = async (memberIdToDelete: string) => { // Unused, comment out for now
-  //   try { // Unused, comment out for now
-  //     const API_URL = getApiUrl(); // Unused, comment out for now
-  //     const res = await fetch(`${API_URL}/member/${memberIdToDelete}`, { // Unused, comment out for now
-  //       method: "DELETE", // Unused, comment out for now
-  //     }); // Unused, comment out for now
-  //     if (res.ok) { // Unused, comment out for now
-  //       setEditSuccess('Member removed successfully!'); // Unused, comment out for now
-  //       // Refresh family members // Unused, comment out for now
-  //       await fetchFamilyMembers(); // Unused, comment out for now
-  //       // If only one member left, update isFamily // Unused, comment out for now
-  //       const updatedMembers = familyMembers.filter(m => m.id !== memberIdToDelete && !m.is_deleted); // Unused, comment out for now
-  //       setIsFamily(updatedMembers.length > 1); // Unused, comment out for now
-  //       // If we deleted the currently selected member, switch to another member // Unused, comment out for now
-  //       if (selectedMemberId === memberIdToDelete) { // Unused, comment out for now
-  //         const activeMembers = updatedMembers; // Unused, comment out for now
-  //         if (activeMembers.length > 0) { // Unused, comment out for now
-  //           setSelectedMemberId(activeMembers[0].id); // Unused, comment out for now
-  //         } // Unused, comment out for now
-  //       } // Unused, comment out for now
-  //     } else { // Unused, comment out for now
-  //       const data = await res.json(); // Unused, comment out for now
-  //       setEditError(data.detail || 'Failed to remove member.'); // Unused, comment out for now
-  //     } // Unused, comment out for now
-  //   } catch (err) { // Unused, comment out for now
-  //     setEditError('Network error. Please try again.'); // Unused, comment out for now
-  //   } // Unused, comment out for now
-  // }; // Unused, comment out for now
-
-  // const handleMemberRestore = async (memberIdToRestore: string) => { // Unused, comment out for now
-  //   try { // Unused, comment out for now
-  //     const API_URL = getApiUrl(); // Unused, comment out for now
-  //     const res = await fetch(`${API_URL}/member/${memberIdToRestore}/restore`, { // Unused, comment out for now
-  //       method: "POST", // Unused, comment out for now
-  //     }); // Unused, comment out for now
-      
-  //     if (res.ok) { // Unused, comment out for now
-  //       setEditSuccess('Member restored successfully!'); // Unused, comment out for now
-  //       // Update family members list // Unused, comment out for now
-  //       setFamilyMembers(prev => prev.map(member =>  // Unused, comment out for now
-  //         member.id === memberIdToRestore  // Unused, comment out for now
-  //           ? { ...member, is_deleted: false, deleted_at: undefined } // Unused, comment out for now
-  //           : member // Unused, comment out for now
-  //       )); // Unused, comment out for now
-  //     } else { // Unused, comment out for now
-  //       const data = await res.json(); // Unused, comment out for now
-  //       setEditError(data.detail || 'Failed to restore member.'); // Unused, comment out for now
-  //     } // Unused, comment out for now
-  //   } catch (err) { // Unused, comment out for now
-  //     setEditError('Network error. Please try again.'); // Unused, comment out for now
-  //   } // Unused, comment out for now
-  // }; // Unused, comment out for now
-
-  // Add member handler
-  const handleAddMember = async () => {
-    setAddMemberError("");
-    if (!/^\s*\S+\s+\S+/.test(newMemberName.trim())) {
-      setAddMemberError("Please enter a full name (first and last). ");
-      return;
-    }
-    setAddMemberLoading(true);
-    try {
-      const API_URL = getApiUrl();
-      // Always use the current member_email for new members
-      const memberEmail = localStorage.getItem("member_email");
-      if (!memberEmail) {
-        setAddMemberError("No family email found. Please check in again.");
-        setAddMemberLoading(false);
-        return;
-      }
-      const res = await fetch(`${API_URL}/member`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: memberEmail, name: newMemberName.trim() }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setShowAddMember(false);
-        setNewMemberName("");
-        setAddMemberError("");
-        // Add the new member to familyMembers state
-        const newMember = {
-          id: data.id,
-          name: newMemberName.trim(),
-          email: memberEmail,
-          is_deleted: false
-        };
-        setFamilyMembers(prev => [...prev, newMember]);
-        // If now 2+ members, switch to family mode
-        if (familyMembers.length + 1 > 1) setIsFamily(true);
-      } else {
-        const err = await res.json();
-        setAddMemberError(err.detail || "Failed to add member.");
-      }
-    } catch {
-      setAddMemberError("Network error. Please try again.");
-    } finally {
-      setAddMemberLoading(false);
-    }
-  };
-
   useEffect(() => {
     localStorage.setItem('checkin_goal', goal.toString());
   }, [goal]);
@@ -438,8 +298,6 @@ function MemberStats({ memberId }: Props) {
   }
 
   const percent = Math.round((weeklyCheckins / goal) * 100);
-  const activeMembers = familyMembers.filter(m => !m.is_deleted);
-  // const deletedMembers = familyMembers.filter(m => m.is_deleted); // Unused, comment out for now
 
   return (
     <div className="min-h-screen w-full bg-gray-900 font-poppins overflow-x-hidden">
@@ -471,12 +329,6 @@ function MemberStats({ memberId }: Props) {
         </div>
 
         {/* Stats Section SECOND */}
-        <motion.div 
-          className="bg-gray-800/50 rounded-xl p-6 backdrop-blur-sm border border-white/10"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-        >
           <div className="mb-6 flex flex-col items-start">
             <div className="flex items-center gap-3 mb-1">
               <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
@@ -492,12 +344,6 @@ function MemberStats({ memberId }: Props) {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Current Streak Card */}
-            <motion.div 
-              className="bg-gray-700/50 rounded-lg p-4 backdrop-blur-sm border border-white/10"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="text-white/70 text-sm">Current Streak</p>
@@ -515,14 +361,7 @@ function MemberStats({ memberId }: Props) {
                   Best: {stats.highest_streak} days
                 </p>
               </div>
-            </motion.div>
             {/* This Week Progress Card */}
-            <motion.div 
-              className="bg-gray-700/50 rounded-lg p-4 backdrop-blur-sm border border-white/10"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.1 }}
-            >
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="text-white/70 text-sm">This Week</p>
@@ -538,12 +377,12 @@ function MemberStats({ memberId }: Props) {
               {/* Progress Bar */}
               <div className="mt-4">
                 <div className="h-2 bg-gray-600 rounded-full overflow-hidden">
-                  <motion.div
+                  {/* <motion.div
                     className="h-full bg-red-500 rounded-full"
                     initial={{ width: 0 }}
                     animate={{ width: `${Math.min((weeklyCheckins / goal) * 100, 100)}%` }}
                     transition={{ duration: 0.5, delay: 0.2 }}
-                  />
+                  /> */}
                 </div>
                 <p className="text-white/50 text-xs mt-2">
                   {percent}% of weekly goal
@@ -591,14 +430,7 @@ function MemberStats({ memberId }: Props) {
                   </div>
                 </div>
               </div>
-            </motion.div>
             {/* Monthly Check-ins Card */}
-            <motion.div 
-              className="bg-gray-700/50 rounded-lg p-4 backdrop-blur-sm border border-white/10"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.2 }}
-            >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-white/70 text-sm">This Month</p>
@@ -609,17 +441,9 @@ function MemberStats({ memberId }: Props) {
                 </div>
                 <div className="text-3xl">📅</div>
               </div>
-            </motion.div>
           </div>
-        </motion.div>
 
         {/* Profile Section LAST */}
-        <motion.div
-          className="bg-gray-800/50 rounded-xl p-6 backdrop-blur-sm border border-white/10"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
           <div className="mb-6 flex flex-col items-start">
             <div className="flex items-center gap-3 mb-1">
               <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center">
@@ -726,24 +550,11 @@ function MemberStats({ memberId }: Props) {
             </div>
           )}
           {editError && (
-            <motion.div 
-              className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              {editError}
-            </motion.div>
+              <div className="mt-4 p-3 bg-red-100 border border-red-300 rounded-lg text-red-700 text-sm">{editError}</div>
           )}
           {editSuccess && (
-            <motion.div 
-              className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-green-400 text-sm"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              {editSuccess}
-            </motion.div>
+              <div className="mt-4 p-3 bg-green-100 border border-green-300 rounded-lg text-green-700 text-sm">{editSuccess}</div>
           )}
-        </motion.div>
       </div>
     </div>
   );
