@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { isValidUUID, getApiUrl, clearMemberData, getTorontoTime, getTorontoDateString, getMondayOfCurrentWeekToronto } from './utils';
-import BarcodeGenerator from './BarcodeGenerator';
+import QRCodeGenerator from './QRCodeGenerator';
 
 interface MemberStats {
   monthly_check_ins: number;
@@ -651,39 +651,31 @@ function MemberStats({ memberId }: Props) {
           )}
         </motion.div>
 
-        {/* Barcode Section */}
-        <motion.div
-          className="bg-gray-800/50 rounded-xl p-6 backdrop-blur-sm border border-white/10"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.05 }}
-        >
-          <div className="mb-6 flex flex-col items-start">
-            <div className="flex items-center gap-3 mb-1">
-              <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h2M4 4h5.01M4 20h4.01" />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-extrabold text-white">Barcode</h2>
-            </div>
-            <div className="w-16 h-1 rounded-full bg-gradient-to-r from-purple-500 to-purple-700" />
-          </div>
-          {/* Barcode content */}
-          <div className="flex justify-center">
-            {stats?.barcode ? (
-              <BarcodeGenerator 
-                value={stats.barcode} 
-                className="max-w-full"
-              />
+        {/* QR Code Section */}
+        <div className="w-full flex justify-center my-6">
+          {(() => {
+            let qrData = null;
+            if (isFamily && familyMembers.length > 1) {
+              qrData = {
+                type: "family",
+                email: stats.email,
+                members: familyMembers.map(m => ({ name: m.name, barcode: (m as any).barcode })),
+              };
+            } else if (stats.barcode && stats.email) {
+              qrData = {
+                type: "member",
+                barcode: stats.barcode,
+                email: stats.email,
+                name: stats.name,
+              };
+            }
+            return qrData ? (
+              <QRCodeGenerator data={qrData} />
             ) : (
-              <div className="text-center text-white/50 py-8">
-                <p>No barcode available</p>
-                <p className="text-xs mt-2">Barcode will be generated automatically</p>
-              </div>
-            )}
-          </div>
-        </motion.div>
+              <div className="text-gray-400">No QR code available</div>
+            );
+          })()}
+        </div>
 
         {/* Stats Section */}
         <motion.div 

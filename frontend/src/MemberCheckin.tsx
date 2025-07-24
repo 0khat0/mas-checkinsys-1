@@ -373,9 +373,9 @@ function MemberCheckin() {
                     for (const name of allNames) {
                       console.log(`🔍 Checking name: "${name.trim()}"`);
                       try {
-                        const lookupRes = await fetch(`${API_URL}/member/lookup-by-name`, {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
+                    const lookupRes = await fetch(`${API_URL}/member/lookup-by-name`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ name: name.trim() }),
                         });
                         if (lookupRes.ok) {
@@ -453,11 +453,11 @@ function MemberCheckin() {
                         console.log("✅ Updated family members:", familyMemberNames);
                         
                         // Set up localStorage
-                        localStorage.setItem("family_members", JSON.stringify(familyMemberNames));
+                          localStorage.setItem("family_members", JSON.stringify(familyMemberNames));
                         localStorage.setItem("member_email", familyEmail);
                         localStorage.setItem("member_id", existingMembers[0].id);
                         setMemberEmail(familyEmail);
-                        setFamilyMembers(familyMemberNames);
+                          setFamilyMembers(familyMemberNames);
                         console.log("✅ localStorage updated");
                         
                         // STEP 4: Check in all entered members using family check-in
@@ -474,18 +474,18 @@ function MemberCheckin() {
                         console.log("- Members to check in:", membersToCheckIn);
                         
                         const familyCheckinRes = await fetch(`${API_URL}/family/checkin`, {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({
                             email: familyEmail,
                             member_names: membersToCheckIn,
                           }),
-                        });
-                        
+                    });
+                    
                         if (familyCheckinRes.ok) {
                           const checkinResult = await familyCheckinRes.json();
                           console.log("✅ Check-in successful:", checkinResult);
-                          setStatus("success");
+                      setStatus("success");
                           if (familyMemberNames.length > 1) {
                             setMessage("All family members have checked in for this period!");
                           } else {
@@ -497,7 +497,7 @@ function MemberCheckin() {
                           setStatus("error");
                           setMessage(err.detail || "Check-in failed.");
                         }
-                      } else {
+                    } else {
                         console.error("❌ Failed to load family information");
                         setStatus("error");
                         setMessage("Failed to load family information.");
@@ -608,11 +608,11 @@ function MemberCheckin() {
                     for (const name of allNames) {
                       console.log(`🔍 Checking name: "${name.trim()}"`);
                       try {
-                        const lookupRes = await fetch(`${API_URL}/member/lookup-by-name`, {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
+                      const lookupRes = await fetch(`${API_URL}/member/lookup-by-name`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ name: name.trim() }),
-                        });
+                      });
                         if (lookupRes.ok) {
                           const memberData = await lookupRes.json();
                           console.log(`✅ Found existing member:`, memberData);
@@ -625,7 +625,7 @@ function MemberCheckin() {
                           if (!familyEmail) {
                             familyEmail = memberData.email;
                             console.log(`📧 Set family email to: ${familyEmail}`);
-                          }
+                      }
                         } else {
                           console.log(`❌ Name not found: "${name.trim()}" - adding to new members`);
                           newMembers.push(name.trim());
@@ -657,23 +657,23 @@ function MemberCheckin() {
                       console.log(`📝 Adding ${newMembers.length} new members to email: ${familyEmail}`);
                       try {
                         const addRes = await fetch(`${API_URL}/family/add-members`, {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({
                             email: familyEmail,
                             new_members: newMembers,
                           }),
-                        });
+                      });
                         if (addRes.ok) {
                           const addResult = await addRes.json();
                           console.log("✅ Successfully added new members:", addResult);
                         } else {
                           const err = await addRes.json();
                           console.error("❌ Failed to add new members:", err.detail);
-                        }
+                      }
                       } catch (error) {
                         console.error("❌ Error adding new members:", error);
-                      }
+                    }
                     } else {
                       console.log("🔍 STEP 2: Skipped - no new members to add");
                     }
@@ -731,12 +731,12 @@ function MemberCheckin() {
                           console.error("❌ Check-in failed:", err);
                           setStatus("error");
                           setMessage(err.detail || "Check-in failed.");
-                        }
+                    }
                       } else {
                         console.error("❌ Failed to load family information");
                         setStatus("error");
                         setMessage("Failed to load family information.");
-                      }
+                  }
                     } catch (error) {
                       console.error("❌ Network error loading family information:", error);
                       setStatus("error");
