@@ -183,41 +183,6 @@ function AdminDashboard() {
     }
   };
 
-  // --- Generate Toronto-local ISO string for a date (YYYY-MM-DDTHH:mm:ss-04:00) ---
-  function toTorontoISO(date: Date) {
-    // Always midnight Toronto time
-    const tzDate = new Date(date.toLocaleString('en-US', { timeZone: 'America/Toronto' }));
-    tzDate.setHours(0, 0, 0, 0);
-    // Format as ISO with offset
-    const offset = -tzDate.getTimezoneOffset();
-    const sign = offset >= 0 ? '+' : '-';
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    const absOffset = Math.abs(offset);
-    const hours = pad(Math.floor(absOffset / 60));
-    const mins = pad(absOffset % 60);
-    return `${tzDate.getFullYear()}-${pad(tzDate.getMonth() + 1)}-${pad(tzDate.getDate())}T00:00:00${sign}${hours}:${mins}`;
-  }
-
-  // --- Generate full Toronto-local date range for zero-filling (YYYY-MM-DD) ---
-  function generateTorontoDateRange(start: Date, end: Date, group: 'day' | 'month') {
-    const range = [];
-    let current = new Date(start);
-    if (group === 'month') {
-      current = new Date(current.getFullYear(), current.getMonth(), 1);
-      end = new Date(end.getFullYear(), end.getMonth(), 1);
-      while (current <= end) {
-        range.push(`${current.getFullYear()}-${(current.getMonth() + 1).toString().padStart(2, '0')}-${'01'}`);
-        current = addMonths(current, 1);
-      }
-    } else {
-      while (current <= end) {
-        range.push(`${current.getFullYear()}-${(current.getMonth() + 1).toString().padStart(2, '0')}-${current.getDate().toString().padStart(2, '0')}`);
-        current = addDays(current, 1);
-      }
-    }
-    return range;
-  }
-
   // --- Build processed data with zero-fill using date part only ---
   let processedCheckinData: { date: string, count: number }[] = [];
   
