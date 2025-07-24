@@ -1,5 +1,6 @@
 import type { FC } from "react";
 import QRCode from "react-qr-code";
+import { useState } from "react";
 
 interface QRCodeGeneratorProps {
   data: object;
@@ -8,10 +9,11 @@ interface QRCodeGeneratorProps {
 
 const QRCodeGenerator: FC<QRCodeGeneratorProps> = ({ data, size = 160 }) => {
   const svgId = "mas-qr-svg";
+  const [showHint, setShowHint] = useState(false);
   if (!data) return <div className="text-gray-400">No QR code available</div>;
   const value = JSON.stringify(data);
 
-  // Download QR code as PNG
+  // Open QR code as PNG in a new tab for mobile-friendly saving
   const handleSave = () => {
     const svg = document.getElementById(svgId) as SVGSVGElement | null;
     if (!svg) return;
@@ -26,12 +28,8 @@ const QRCodeGenerator: FC<QRCodeGeneratorProps> = ({ data, size = 160 }) => {
       ctx?.clearRect(0, 0, canvas.width, canvas.height);
       ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
       const pngUrl = canvas.toDataURL("image/png");
-      const link = document.createElement("a");
-      link.href = pngUrl;
-      link.download = "MAS Member QR.png";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      window.open(pngUrl, "_blank");
+      setShowHint(true);
     };
     img.src = 'data:image/svg+xml;base64,' + window.btoa(unescape(encodeURIComponent(svgString)));
   };
@@ -52,6 +50,11 @@ const QRCodeGenerator: FC<QRCodeGeneratorProps> = ({ data, size = 160 }) => {
         >
           Save Image
         </button>
+        {showHint && (
+          <div className="mt-3 text-xs text-purple-200 text-center">
+            Long-press the image to save to your Photos.
+          </div>
+        )}
       </div>
     </div>
   );
