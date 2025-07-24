@@ -338,50 +338,6 @@ function MemberStats({ memberId }: Props) {
   //   } // Unused, comment out for now
   // }; // Unused, comment out for now
 
-  // Add member handler
-  const handleAddMember = async () => {
-    setEditError('');
-    if (!/^\s*\S+\s+\S+/.test(newMemberName.trim())) {
-      setEditError("Please enter a full name (first and last). ");
-      return;
-    }
-    try {
-      const API_URL = getApiUrl();
-      // Always use the current member_email for new members
-      const memberEmail = localStorage.getItem("member_email");
-      if (!memberEmail) {
-        setEditError("No family email found. Please check in again.");
-        return;
-      }
-      const res = await fetch(`${API_URL}/member`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: memberEmail, name: newMemberName.trim() }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setEditMode(false);
-        setNewMemberName("");
-        setEditError("");
-        // Add the new member to familyMembers state
-        const newMember = {
-          id: data.id,
-          name: newMemberName.trim(),
-          email: memberEmail,
-          is_deleted: false
-        };
-        setFamilyMembers(prev => [...prev, newMember]);
-        // If now 2+ members, switch to family mode
-        if (familyMembers.length + 1 > 1) setIsFamily(true);
-      } else {
-        const err = await res.json();
-        setEditError(err.detail || "Failed to add member.");
-      }
-    } catch {
-      setEditError("Network error. Please try again.");
-    }
-  };
-
   useEffect(() => {
     localStorage.setItem('checkin_goal', goal.toString());
   }, [goal]);
